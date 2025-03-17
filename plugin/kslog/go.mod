@@ -9,3 +9,5 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 )
+
+replace github.com/kellen-miller/franz-go v0.2.0 => ../..
