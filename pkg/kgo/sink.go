@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"math"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -850,9 +851,18 @@ func (s *sink) handleReqRespBatch(
 	s.cl.cfg.logger.Log(LogLevelDebug, "received produce response",
 		"err", kerr.ErrorForCode(rp.ErrorCode),
 		"err_msg", rp.ErrorMessage,
-		"err_records", rp.ErrorRecords)
+		"err_records", rp.ErrorRecords,
+		"recBuf", batch.owner)
 
 	if moving := kmove.maybeAddProducePartition(resp, rp, batch.owner); moving {
+
+		tpdata := make([]string, 0, len(kmove.recBufs))
+		for _, tpd := range kmove.recBufs {
+			val := "[leader:" + strconv.Itoa(int(tpd.leader)) + ",leaderEpoch:" + strconv.Itoa(int(tpd.leaderEpoch)) + "]"
+			tpdata = append(tpdata, val)
+		}
+
+		s.cl.cfg.logger.Log(LogLevelDebug, "recBuf", "topicPartitionData", strings.Join(tpdata, " "))
 		if debug {
 			fmt.Fprintf(b, "move:%d:%d@%d,%d}, ", rp.CurrentLeader.LeaderID, rp.CurrentLeader.LeaderEpoch,
 				rp.BaseOffset, nrec)
