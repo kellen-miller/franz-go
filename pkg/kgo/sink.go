@@ -1089,11 +1089,18 @@ func (s *sink) handleRetryBatches(
 	kmove *kip951move,
 	backoffSeq uint32,
 	updateMeta bool, // if we should maybe update the metadata
-	canFail bool, // if records can fail if they are at limits
+	canFail bool,    // if records can fail if they are at limits
 	why string,
 ) {
 	logger := s.cl.cfg.logger
 	debug := logger.Level() >= LogLevelDebug
+
+	logger.Log(LogLevelDebug, "handleRetryBatches called",
+		"why", why,
+		"updateMeta", updateMeta,
+		"canFail", canFail,
+	)
+
 	var needsMetaUpdate bool
 	var shouldBackoff bool
 	if kmove != nil {
