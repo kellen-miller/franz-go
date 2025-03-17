@@ -847,6 +847,11 @@ func (s *sink) handleReqRespBatch(
 	// to true.
 	batch.owner.okOnSink = false
 
+	s.cl.cfg.logger.Log(LogLevelDebug, "received produce response",
+		"err", kerr.ErrorForCode(rp.ErrorCode),
+		"err_msg", rp.ErrorMessage,
+		"err_records", rp.ErrorRecords)
+
 	if moving := kmove.maybeAddProducePartition(resp, rp, batch.owner); moving {
 		if debug {
 			fmt.Fprintf(b, "move:%d:%d@%d,%d}, ", rp.CurrentLeader.LeaderID, rp.CurrentLeader.LeaderEpoch,
