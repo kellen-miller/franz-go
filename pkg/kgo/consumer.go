@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // Offset is a message offset in a partition.
@@ -35,7 +35,8 @@ func (o Offset) MarshalJSON() ([]byte, error) {
 	if o.relative == 0 {
 		return []byte(fmt.Sprintf(`{"At":%d,"Epoch":%d,"CurrentEpoch":%d}`, o.at, o.epoch, o.currentEpoch)), nil
 	}
-	return []byte(fmt.Sprintf(`{"At":%d,"Relative":%d,"Epoch":%d,"CurrentEpoch":%d}`, o.at, o.relative, o.epoch, o.currentEpoch)), nil
+	return []byte(fmt.Sprintf(`{"At":%d,"Relative":%d,"Epoch":%d,"CurrentEpoch":%d}`, o.at, o.relative, o.epoch,
+		o.currentEpoch)), nil
 }
 
 // String returns the offset as a string; the purpose of this is for logs.
@@ -354,13 +355,19 @@ func (c *consumer) addSourceReadyForDraining(source *source) {
 func (c *consumer) addFakeReadyForDraining(topic string, partition int32, err error, why string) {
 	c.cl.cfg.logger.Log(LogLevelInfo, "injecting fake fetch with an error", "err", err, "why", why)
 	c.sourcesReadyMu.Lock()
-	c.fakeReadyForDraining = append(c.fakeReadyForDraining, Fetch{Topics: []FetchTopic{{
-		Topic: topic,
-		Partitions: []FetchPartition{{
-			Partition: partition,
-			Err:       err,
-		}},
-	}}})
+	c.fakeReadyForDraining = append(c.fakeReadyForDraining, Fetch{
+		Topics: []FetchTopic{
+			{
+				Topic: topic,
+				Partitions: []FetchPartition{
+					{
+						Partition: partition,
+						Err:       err,
+					},
+				},
+			},
+		},
+	})
 	c.sourcesReadyMu.Unlock()
 	c.sourcesReadyCond.Broadcast()
 }
@@ -368,15 +375,21 @@ func (c *consumer) addFakeReadyForDraining(topic string, partition int32, err er
 // NewErrFetch returns a fake fetch containing a single empty topic with a
 // single zero partition with the given error.
 func NewErrFetch(err error) Fetches {
-	return []Fetch{{
-		Topics: []FetchTopic{{
-			Topic: "",
-			Partitions: []FetchPartition{{
-				Partition: -1,
-				Err:       err,
-			}},
-		}},
-	}}
+	return []Fetch{
+		{
+			Topics: []FetchTopic{
+				{
+					Topic: "",
+					Partitions: []FetchPartition{
+						{
+							Partition: -1,
+							Err:       err,
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 // PollFetches waits for fetches to be available, returning as soon as any
@@ -871,7 +884,8 @@ func (cl *Client) RemoveConsumePartitions(partitions map[string][]int32) {
 		removeOffsets[t] = removePartitionOffsets
 	}
 
-	c.assignPartitions(removeOffsets, assignInvalidateMatching, c.d.tps, fmt.Sprintf("remove of %v requested", partitions))
+	c.assignPartitions(removeOffsets, assignInvalidateMatching, c.d.tps,
+		fmt.Sprintf("remove of %v requested", partitions))
 	for t, ps := range partitions {
 		for _, p := range ps {
 			c.d.using.remove(t, p)
@@ -963,10 +977,15 @@ func (f fmtAssignment) String() string {
 // invalidating all. All other cases, we want the tps -- the logic below does
 // not fully differentiate needing to start a new session vs. just reusing the
 // old (third if case below)
-func (c *consumer) assignPartitions(assignments map[string]map[int32]Offset, how assignHow, tps *topicsPartitions, why string) {
+func (c *consumer) assignPartitions(
+	assignments map[string]map[int32]Offset,
+	how assignHow,
+	tps *topicsPartitions,
+	why string,
+) {
 	if c.mu.TryLock() {
 		c.mu.Unlock()
-		panic("assignPartitions called without holding the consumer lock, this is a bug in franz-go, please open an issue at github.com/twmb/franz-go")
+		panic("assignPartitions called without holding the consumer lock, this is a bug in franz-go, please open an issue at github.com/kellen-miller/franz-go")
 	}
 
 	// The internal code can avoid giving an assign reason in cases where
@@ -988,7 +1007,8 @@ func (c *consumer) assignPartitions(assignments map[string]map[int32]Offset, how
 		} else { // else we guarded it
 			c.unguardSessionChange(session)
 		}
-		loadOffsets.loadWithSession(session, "loading offsets in new session from assign") // odds are this assign came from a metadata update, so no reason to force a refresh with loadWithSessionNow
+		loadOffsets.loadWithSession(session,
+			"loading offsets in new session from assign") // odds are this assign came from a metadata update, so no reason to force a refresh with loadWithSessionNow
 
 		// If we started a new session or if we unguarded, we have one
 		// worker. This one worker allowed us to safely add our load
@@ -1100,7 +1120,9 @@ func (c *consumer) assignPartitions(assignments map[string]map[int32]Offset, how
 	for topic, partitions := range assignments {
 		topicPartitions := topics.loadTopic(topic) // should be non-nil
 		if topicPartitions == nil {
-			c.cl.cfg.logger.Log(LogLevelError, "BUG! consumer was assigned topic that we did not ask for in ConsumeTopics nor ConsumePartitions, skipping!", "topic", topic)
+			c.cl.cfg.logger.Log(LogLevelError,
+				"BUG! consumer was assigned topic that we did not ask for in ConsumeTopics nor ConsumePartitions, skipping!",
+				"topic", topic)
 			continue
 		}
 
@@ -1174,7 +1196,8 @@ func (c *consumer) assignPartitions(assignments map[string]map[int32]Offset, how
 			// loaded from FetchOffsets. We inject an error and
 			// avoid using this partition.
 			if offset.at == atCommitted {
-				c.addFakeReadyForDraining(topic, partition, errNoCommittedOffset, "notification of uncommitted partition")
+				c.addFakeReadyForDraining(topic, partition, errNoCommittedOffset,
+					"notification of uncommitted partition")
 				continue
 			}
 
@@ -1293,9 +1316,11 @@ func (o offsetLoad) MarshalJSON() ([]byte, error) {
 		return o.Offset.MarshalJSON()
 	}
 	if o.relative == 0 {
-		return []byte(fmt.Sprintf(`{"Replica":%d,"At":%d,"Epoch":%d,"CurrentEpoch":%d}`, o.replica, o.at, o.epoch, o.currentEpoch)), nil
+		return []byte(fmt.Sprintf(`{"Replica":%d,"At":%d,"Epoch":%d,"CurrentEpoch":%d}`, o.replica, o.at, o.epoch,
+			o.currentEpoch)), nil
 	}
-	return []byte(fmt.Sprintf(`{"Replica":%d,"At":%d,"Relative":%d,"Epoch":%d,"CurrentEpoch":%d}`, o.replica, o.at, o.relative, o.epoch, o.currentEpoch)), nil
+	return []byte(fmt.Sprintf(`{"Replica":%d,"At":%d,"Relative":%d,"Epoch":%d,"CurrentEpoch":%d}`, o.replica, o.at,
+		o.relative, o.epoch, o.currentEpoch)), nil
 }
 
 func (o offsetLoadMap) errToLoaded(err error) []loadedOffset {
@@ -1865,7 +1890,8 @@ func (s *consumerSession) handleListOrEpochResults(loaded loadedOffsets) (reload
 			if loaded.loadType == loadTypeEpoch {
 				t = "epoch"
 			}
-			s.c.cl.cfg.logger.Log(LogLevelDebug, fmt.Sprintf("handled %s results", t), "broker", logID(loaded.broker), "using", using, "reloading", reloading)
+			s.c.cl.cfg.logger.Log(LogLevelDebug, fmt.Sprintf("handled %s results", t), "broker", logID(loaded.broker),
+				"using", using, "reloading", reloading)
 		}()
 	}
 
@@ -1873,7 +1899,8 @@ func (s *consumerSession) handleListOrEpochResults(loaded loadedOffsets) (reload
 	defer s.listOrEpochMu.Unlock()
 
 	for _, load := range loaded.loaded {
-		s.listOrEpochLoadsLoading.removeLoad(load.topic, load.partition) // remove the tracking of this load from our session
+		s.listOrEpochLoadsLoading.removeLoad(load.topic,
+			load.partition) // remove the tracking of this load from our session
 
 		use := func() {
 			if debug {
@@ -1896,7 +1923,8 @@ func (s *consumerSession) handleListOrEpochResults(loaded loadedOffsets) (reload
 		var edl *ErrDataLoss
 		switch {
 		case errors.As(load.err, &edl):
-			s.c.addFakeReadyForDraining(load.topic, load.partition, load.err, "notification of data loss") // signal we lost data, but set the cursor to what we can
+			s.c.addFakeReadyForDraining(load.topic, load.partition, load.err,
+				"notification of data loss") // signal we lost data, but set the cursor to what we can
 			use()
 
 		case load.err == nil:
@@ -1905,7 +1933,8 @@ func (s *consumerSession) handleListOrEpochResults(loaded loadedOffsets) (reload
 		default: // from ErrorCode in a response, or broker request err, or request is canceled as our session is ending
 			reloads.addLoad(load.topic, load.partition, loaded.loadType, load.request)
 			if !kerr.IsRetriable(load.err) && !isRetryableBrokerErr(load.err) && !isDialNonTimeoutErr(load.err) && !isContextErr(load.err) { // non-retryable response error; signal such in a response
-				s.c.addFakeReadyForDraining(load.topic, load.partition, load.err, fmt.Sprintf("notification of non-retryable error from %s request", loaded.loadType))
+				s.c.addFakeReadyForDraining(load.topic, load.partition, load.err,
+					fmt.Sprintf("notification of non-retryable error from %s request", loaded.loadType))
 			}
 
 			if debug {
@@ -2012,7 +2041,13 @@ func (l *loadedOffsets) addAll(as []loadedOffset) loadedOffsets {
 	return *l
 }
 
-func (cl *Client) listOffsetsForBrokerLoad(ctx context.Context, broker *broker, load offsetLoadMap, tps *topicsPartitions, results chan<- loadedOffsets) {
+func (cl *Client) listOffsetsForBrokerLoad(
+	ctx context.Context,
+	broker *broker,
+	load offsetLoadMap,
+	tps *topicsPartitions,
+	results chan<- loadedOffsets,
+) {
 	loaded := loadedOffsets{broker: broker.meta.NodeID, loadType: loadTypeList}
 
 	req1, req2 := load.buildListReq(cl.cfg.isolationLevel)
@@ -2228,7 +2263,13 @@ func (cl *Client) listOffsetsForBrokerLoad(ctx context.Context, broker *broker, 
 	results <- loaded.addAll(load.errToLoaded(kerr.UnknownTopicOrPartition))
 }
 
-func (*Client) loadEpochsForBrokerLoad(ctx context.Context, broker *broker, load offsetLoadMap, tps *topicsPartitions, results chan<- loadedOffsets) {
+func (*Client) loadEpochsForBrokerLoad(
+	ctx context.Context,
+	broker *broker,
+	load offsetLoadMap,
+	tps *topicsPartitions,
+	results chan<- loadedOffsets,
+) {
 	loaded := loadedOffsets{broker: broker.meta.NodeID, loadType: loadTypeEpoch}
 
 	kresp, err := broker.waitResp(ctx, load.buildEpochReq())

@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
-	"github.com/twmb/franz-go/pkg/sasl"
-	"github.com/twmb/franz-go/pkg/sasl/scram"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/sasl"
+	"github.com/kellen-miller/franz-go/pkg/sasl/scram"
 )
 
 var (
@@ -421,9 +421,9 @@ func testChainETL(
 	balancer GroupBalancer,
 ) {
 	var (
-		/////////////
+		// ///////////
 		// LEVEL 1 //
-		/////////////
+		// ///////////
 
 		group1, groupCleanup1 = tmpGroup(t)
 		topic2, topic2Cleanup = tmpTopic(t)
@@ -437,9 +437,9 @@ func testChainETL(
 			body,
 		)
 
-		/////////////
+		// ///////////
 		// LEVEL 2 //
-		/////////////
+		// ///////////
 
 		group2, groupCleanup2 = tmpGroup(t)
 		topic3, topic3Cleanup = tmpTopic(t)
@@ -453,9 +453,9 @@ func testChainETL(
 			body,
 		)
 
-		/////////////
+		// ///////////
 		// LEVEL 3 //
-		/////////////
+		// ///////////
 
 		group3, groupCleanup3 = tmpGroup(t)
 		topic4, topic4Cleanup = tmpTopic(t)
@@ -479,9 +479,9 @@ func testChainETL(
 		topic4Cleanup()
 	}()
 
-	////////////////////
+	// //////////////////
 	// CONSUMER START //
-	////////////////////
+	// //////////////////
 
 	for i := 0; i < 3; i++ { // three consumers start with standard poll&commit behavior
 		consumers1.goRun(transactional, -1)
@@ -511,9 +511,9 @@ func testChainETL(
 		close(doneConsume)
 	}()
 
-	//////////////////////
+	// ////////////////////
 	// FINAL VALIDATION //
-	//////////////////////
+	// ////////////////////
 
 out:
 	for {

@@ -25,7 +25,7 @@
 //	        // ...other opts
 //	)
 //
-// More examples are linked in the main project readme: https://github.com/twmb/franz-go/#metrics--logging
+// More examples are linked in the main project readme: https://github.com/kellen-miller/franz-go/#metrics--logging
 //
 // By default, metrics are installed under the a new prometheus registry, but
 // this can be overridden with the Registry option.
@@ -43,7 +43,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
 )
 
 var ( // interface checks to ensure we implement the hooks properly
@@ -422,7 +422,12 @@ func (m *Metrics) OnBrokerThrottle(meta kgo.BrokerMetadata, throttleInterval tim
 // OnProduceBatchWritten implements the HookProduceBatchWritten interface for
 // metrics gathering.
 // This method is meant to be called by the hook system and not by the user
-func (m *Metrics) OnProduceBatchWritten(meta kgo.BrokerMetadata, topic string, _ int32, metrics kgo.ProduceBatchMetrics) {
+func (m *Metrics) OnProduceBatchWritten(
+	meta kgo.BrokerMetadata,
+	topic string,
+	_ int32,
+	metrics kgo.ProduceBatchMetrics,
+) {
 	labels := m.fetchProducerLabels(kgo.NodeName(meta.NodeID), topic)
 	if m.cfg.fetchProduceOpts.uncompressedBytes {
 		m.produceUncompressedBytes.With(labels).Add(float64(metrics.UncompressedBytes))

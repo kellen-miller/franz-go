@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // TopicID is the 16 byte underlying topic ID.
@@ -432,11 +432,20 @@ func (cl *Client) ListCommittedOffsets(ctx context.Context, topics ...string) (L
 // to the response with the expected error code kerr.UnknownTopicOrPartition.
 //
 // This may return *ShardErrors.
-func (cl *Client) ListOffsetsAfterMilli(ctx context.Context, millisecond int64, topics ...string) (ListedOffsets, error) {
+func (cl *Client) ListOffsetsAfterMilli(
+	ctx context.Context,
+	millisecond int64,
+	topics ...string,
+) (ListedOffsets, error) {
 	return cl.listOffsets(ctx, 0, millisecond, topics)
 }
 
-func (cl *Client) listOffsets(ctx context.Context, isolation int8, timestamp int64, topics []string) (ListedOffsets, error) {
+func (cl *Client) listOffsets(
+	ctx context.Context,
+	isolation int8,
+	timestamp int64,
+	topics []string,
+) (ListedOffsets, error) {
 	tds, err := cl.ListTopics(ctx, topics...)
 	if err != nil {
 		return nil, err

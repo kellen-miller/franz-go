@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/twmb/franz-go/pkg/kfake"
+	"github.com/kellen-miller/franz-go/pkg/kfake"
 )
 
 func main() {

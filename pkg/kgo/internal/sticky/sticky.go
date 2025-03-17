@@ -8,8 +8,8 @@ package sticky
 import (
 	"math"
 
-	"github.com/twmb/franz-go/pkg/kbin"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kbin"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // Sticky partitioning has two versions, the latter from KIP-341 preventing a

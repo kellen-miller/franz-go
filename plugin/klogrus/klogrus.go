@@ -3,8 +3,8 @@ package klogrus
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	
 )
 
 var (

@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 type udBuilder struct {
@@ -192,7 +192,8 @@ func testPlanUsage(t *testing.T, plan Plan, topics map[string]int32, unused []st
 					continue
 				}
 				if times > 0 {
-					t.Errorf("%s caused partition %s/%d to be multiply used (now %d times)", member, topic, partition, times)
+					t.Errorf("%s caused partition %s/%d to be multiply used (now %d times)", member, topic, partition,
+						times)
 				}
 				all[tp] = times + 1
 			}

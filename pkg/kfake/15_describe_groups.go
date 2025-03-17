@@ -1,7 +1,7 @@
 package kfake
 
 import (
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 func init() { regKey(15, 0, 5) }

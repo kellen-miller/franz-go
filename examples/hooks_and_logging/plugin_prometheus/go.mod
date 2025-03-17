@@ -5,8 +5,8 @@ go 1.23
 toolchain go1.23.3
 
 require (
-	github.com/twmb/franz-go v1.18.0
-	github.com/twmb/franz-go/plugin/kprom v1.1.0
+	github.com/kellen-miller/franz-go v1.18.0
+	github.com/kellen-miller/franz-go/plugin/kprom v1.1.0
 )
 
 require (
@@ -19,7 +19,7 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	github.com/twmb/franz-go/pkg/kmsg v1.9.0 // indirect
+	github.com/kellen-miller/franz-go/pkg/kmsg v1.9.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 )

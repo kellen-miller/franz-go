@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
 )
 
 type metawait struct {
@@ -198,7 +198,8 @@ loop:
 					return
 				case why := <-cl.updateMetadataNowCh:
 					timer.Stop()
-					cl.cfg.logger.Log(LogLevelInfo, "immediate metadata update triggered, bypassing normal wait", "why", why)
+					cl.cfg.logger.Log(LogLevelInfo, "immediate metadata update triggered, bypassing normal wait", "why",
+						why)
 				case <-timer.C:
 				case fn := <-cl.blockingMetadataFnCh:
 					fn()
@@ -382,7 +383,9 @@ func (cl *Client) updateMetadata() (retryWhy multiUpdateWhy, err error) {
 			// We have to `go` because Purge issues a blocking
 			// metadata fn; this will wait for our current
 			// execution to finish then purge.
-			cl.cfg.logger.Log(LogLevelInfo, "regex consumer purging topics that were previously consumed because they are missing in a metadata response, we are assuming they are deleted", "topics", purgeTopics)
+			cl.cfg.logger.Log(LogLevelInfo,
+				"regex consumer purging topics that were previously consumed because they are missing in a metadata response, we are assuming they are deleted",
+				"topics", purgeTopics)
 			go cl.PurgeTopicsFromClient(purgeTopics...)
 		}
 	}
@@ -555,7 +558,8 @@ func (cl *Client) fetchTopicMetadata(all bool, reqTopics []string) (map[string]*
 	for i := range meta.Topics {
 		topicMeta := &meta.Topics[i]
 		if topicMeta.Topic == nil {
-			cl.cfg.logger.Log(LogLevelWarn, "metadata response contained nil topic name even though we did not request with topic IDs, skipping")
+			cl.cfg.logger.Log(LogLevelWarn,
+				"metadata response contained nil topic name even though we did not request with topic IDs, skipping")
 			continue
 		}
 		topic := *topicMeta.Topic
@@ -587,7 +591,8 @@ func (cl *Client) fetchTopicMetadata(all bool, reqTopics []string) (map[string]*
 		})
 		for i := range topicMeta.Partitions {
 			if got := topicMeta.Partitions[i].Partition; got != int32(i) {
-				mt.loadErr = fmt.Errorf("kafka did not reply with a comprensive set of partitions for a topic; we expected partition %d but saw %d", i, got)
+				mt.loadErr = fmt.Errorf("kafka did not reply with a comprensive set of partitions for a topic; we expected partition %d but saw %d",
+					i, got)
 				break
 			}
 		}
@@ -685,7 +690,8 @@ func (cl *Client) mergeTopicPartitions(
 				topicPartition.records.bumpRepeatedLoadErr(lv.loadErr)
 			}
 		} else if !kerr.IsRetriable(r.loadErr) || cl.cfg.keepRetryableFetchErrors {
-			cl.consumer.addFakeReadyForDraining(topic, -1, r.loadErr, "metadata refresh has a load error on this entire topic")
+			cl.consumer.addFakeReadyForDraining(topic, -1, r.loadErr,
+				"metadata refresh has a load error on this entire topic")
 		}
 		retryWhy.add(topic, -1, r.loadErr)
 		return
@@ -732,7 +738,8 @@ func (cl *Client) mergeTopicPartitions(
 
 			r.partitions = append(r.partitions, newTP)
 
-			cl.cfg.logger.Log(LogLevelDebug, "metadata update is missing partition in topic, we are keeping the partition around for safety -- use PurgeTopicsFromClient if you wish to remove the topic",
+			cl.cfg.logger.Log(LogLevelDebug,
+				"metadata update is missing partition in topic, we are keeping the partition around for safety -- use PurgeTopicsFromClient if you wish to remove the topic",
 				"topic", topic,
 				"partition", part,
 			)
@@ -757,7 +764,8 @@ func (cl *Client) mergeTopicPartitions(
 			if isProduce {
 				newTP.records.bumpRepeatedLoadErr(newTP.loadErr)
 			} else if !kerr.IsRetriable(newTP.loadErr) || cl.cfg.keepRetryableFetchErrors {
-				cl.consumer.addFakeReadyForDraining(topic, int32(part), newTP.loadErr, "metadata refresh has a load error on this partition")
+				cl.consumer.addFakeReadyForDraining(topic, int32(part), newTP.loadErr,
+					"metadata refresh has a load error on this partition")
 			}
 			retryWhy.add(topic, int32(part), newTP.loadErr)
 			continue
@@ -792,7 +800,8 @@ func (cl *Client) mergeTopicPartitions(
 				continue
 			}
 
-			cl.cfg.logger.Log(LogLevelInfo, "metadata leader epoch went backwards repeatedly, we are now keeping the metadata to allow forward progress",
+			cl.cfg.logger.Log(LogLevelInfo,
+				"metadata leader epoch went backwards repeatedly, we are now keeping the metadata to allow forward progress",
 				"topic", topic,
 				"partition", part,
 				"old_leader_epoch", oldTP.leaderEpoch,
@@ -803,7 +812,8 @@ func (cl *Client) mergeTopicPartitions(
 		if !isProduce {
 			var noID [16]byte
 			if newTP.cursor.topicID == noID && oldTP.cursor.topicID != noID {
-				cl.cfg.logger.Log(LogLevelWarn, "metadata update is missing the topic ID when we previously had one, ignoring update",
+				cl.cfg.logger.Log(LogLevelWarn,
+					"metadata update is missing the topic ID when we previously had one, ignoring update",
 					"topic", topic,
 					"partition", part,
 				)

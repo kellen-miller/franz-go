@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // This simple test hits every branch of cooperative-sticky's adjustCooperative
@@ -38,18 +38,24 @@ func Test_stickyAdjustCooperative(t *testing.T) {
 			{MemberID: "d"},
 		},
 		metadatas: []kmsg.ConsumerMemberMetadata{
-			{OwnedPartitions: assn(map[string][]int32{
-				"t1":      {1, 2, 3, 4},
-				"tmove":   {1, 2},
-				"tdelete": {1, 2},
-			})},
-			{OwnedPartitions: assn(map[string][]int32{
-				"t2": {1, 2, 3},
-			})},
+			{
+				OwnedPartitions: assn(map[string][]int32{
+					"t1":      {1, 2, 3, 4},
+					"tmove":   {1, 2},
+					"tdelete": {1, 2},
+				}),
+			},
+			{
+				OwnedPartitions: assn(map[string][]int32{
+					"t2": {1, 2, 3},
+				}),
+			},
 			{}, // eager member, nothing owned
-			{OwnedPartitions: assn(map[string][]int32{
-				"t1": {1, 2, 3, 4},
-			})},
+			{
+				OwnedPartitions: assn(map[string][]int32{
+					"t1": {1, 2, 3, 4},
+				}),
+			},
 		},
 	}
 

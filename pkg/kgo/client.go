@@ -24,9 +24,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
-	"github.com/twmb/franz-go/pkg/sasl"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/sasl"
 )
 
 var crc32c = crc32.MakeTable(crc32.Castagnoli) // record crc's use Castagnoli table; for consuming/producing
@@ -862,7 +862,11 @@ func (cl *Client) fetchBrokerMetadata(ctx context.Context) error {
 	return wait.err
 }
 
-func (cl *Client) fetchMetadataForTopics(ctx context.Context, all bool, topics []string) (*broker, *kmsg.MetadataResponse, error) {
+func (cl *Client) fetchMetadataForTopics(
+	ctx context.Context,
+	all bool,
+	topics []string,
+) (*broker, *kmsg.MetadataResponse, error) {
 	req := kmsg.NewPtrMetadataRequest()
 	req.AllowAutoTopicCreation = cl.cfg.allowAutoTopicCreation
 	if all {
@@ -879,7 +883,11 @@ func (cl *Client) fetchMetadataForTopics(ctx context.Context, all bool, topics [
 	return cl.fetchMetadata(ctx, req, true)
 }
 
-func (cl *Client) fetchMetadata(ctx context.Context, req *kmsg.MetadataRequest, limitRetries bool) (*broker, *kmsg.MetadataResponse, error) {
+func (cl *Client) fetchMetadata(
+	ctx context.Context,
+	req *kmsg.MetadataRequest,
+	limitRetries bool,
+) (*broker, *kmsg.MetadataResponse, error) {
 	r := cl.retryable()
 
 	// We limit retries for internal metadata refreshes, because these do
@@ -1656,7 +1664,14 @@ func (cl *Client) doLoadCoordinators(ctx context.Context, typ int8, keys ...stri
 // coordinators.
 //
 // This returns if we load brokers, and populates m with results.
-func (cl *Client) waitCoordinatorLoad(ctx context.Context, typ int8, load2key map[*coordinatorLoad][]string, shouldLoadBrokers bool, toRequest map[string]bool, m map[string]brokerOrErr) bool {
+func (cl *Client) waitCoordinatorLoad(
+	ctx context.Context,
+	typ int8,
+	load2key map[*coordinatorLoad][]string,
+	shouldLoadBrokers bool,
+	toRequest map[string]bool,
+	m map[string]brokerOrErr,
+) bool {
 	var loadedBrokers bool
 	for c, keys := range load2key {
 		<-c.loadWait
@@ -1810,11 +1825,12 @@ func (cl *Client) handleCoordinatorReq(ctx context.Context, req kmsg.Request) Re
 	default:
 		// All group requests should be listed below, so if it isn't,
 		// then we do not know what this request is.
-		return shard(nil, req, nil, errors.New("client is too old; this client does not know what to do with this request"))
+		return shard(nil, req, nil,
+			errors.New("client is too old; this client does not know what to do with this request"))
 
-	/////////
+	// ///////
 	// TXN // -- all txn reqs are simple
-	/////////
+	// ///////
 
 	case *kmsg.InitProducerIDRequest:
 		if t.TransactionalID != nil {
@@ -1825,16 +1841,17 @@ func (cl *Client) handleCoordinatorReq(ctx context.Context, req kmsg.Request) Re
 		// retryable-error parsing, even though we are not actually
 		// using a defined txn coordinator. This is fine; by passing no
 		// names, we delete no coordinator.
-		coordinator, resp, err := cl.handleReqWithCoordinator(ctx, func() (*broker, error) { return cl.broker(), nil }, coordinatorTypeTxn, "", req)
+		coordinator, resp, err := cl.handleReqWithCoordinator(ctx, func() (*broker, error) { return cl.broker(), nil },
+			coordinatorTypeTxn, "", req)
 		return shard(coordinator, req, resp, err)
 	case *kmsg.AddOffsetsToTxnRequest:
 		return cl.handleCoordinatorReqSimple(ctx, coordinatorTypeTxn, t.TransactionalID, req)
 	case *kmsg.EndTxnRequest:
 		return cl.handleCoordinatorReqSimple(ctx, coordinatorTypeTxn, t.TransactionalID, req)
 
-	///////////
+	// /////////
 	// GROUP // -- most group reqs are simple
-	///////////
+	// /////////
 
 	case *kmsg.OffsetCommitRequest:
 		return cl.handleCoordinatorReqSimple(ctx, coordinatorTypeGroup, t.Group, req)
@@ -1858,7 +1875,12 @@ func (cl *Client) handleCoordinatorReq(ctx context.Context, req kmsg.Request) Re
 //
 // The error is inspected to see if it is a retryable error and, if so, the
 // coordinator is deleted.
-func (cl *Client) handleCoordinatorReqSimple(ctx context.Context, typ int8, name string, req kmsg.Request) ResponseShard {
+func (cl *Client) handleCoordinatorReqSimple(
+	ctx context.Context,
+	typ int8,
+	name string,
+	req kmsg.Request,
+) ResponseShard {
 	coordinator, resp, err := cl.handleReqWithCoordinator(ctx, func() (*broker, error) {
 		return cl.loadCoordinator(ctx, typ, name)
 	}, typ, name, req)
@@ -2060,9 +2082,9 @@ func (b *Broker) request(ctx context.Context, retry bool, req kmsg.Request) (kms
 	}
 }
 
-//////////////////////
+// ////////////////////
 // REQUEST SHARDING //
-//////////////////////
+// ////////////////////
 
 // Below here lies all logic to handle requests that need to be split and sent
 // to many brokers. A lot of the logic for each sharding function is very
@@ -2186,8 +2208,10 @@ func (cl *Client) handleShardedReq(ctx context.Context, req kmsg.Request) ([]Res
 	issue = func(try reqTry) {
 		issues, reshardable, err := sharder.shard(ctx, try.req, try.lastErr)
 		if err != nil {
-			l.Log(LogLevelDebug, "unable to shard request", "req", kmsg.Key(try.req.Key()).Name(), "previous_tries", try.tries, "err", err)
-			addShard(shard(nil, try.req, nil, err)) // failure to shard means data loading failed; this request is failed
+			l.Log(LogLevelDebug, "unable to shard request", "req", kmsg.Key(try.req.Key()).Name(), "previous_tries",
+				try.tries, "err", err)
+			addShard(shard(nil, try.req, nil,
+				err)) // failure to shard means data loading failed; this request is failed
 			return
 		}
 
@@ -2195,10 +2219,12 @@ func (cl *Client) handleShardedReq(ctx context.Context, req kmsg.Request) ([]Res
 		// it to a random broker. There is no benefit to this, but at
 		// least we will return one shard.
 		if len(issues) == 0 {
-			issues = []issueShard{{
-				req: try.req,
-				any: true,
-			}}
+			issues = []issueShard{
+				{
+					req: try.req,
+					any: true,
+				},
+			}
 			reshardable = true
 		}
 
@@ -2245,14 +2271,16 @@ func (cl *Client) handleShardedReq(ctx context.Context, req kmsg.Request) ([]Res
 					broker, err = cl.brokerOrErr(ctx, myIssue.broker, errUnknownBroker)
 				}
 				if err != nil {
-					addShard(shard(nil, myUnderlyingReq, nil, err)) // failure to load a broker is a failure to issue a request
+					addShard(shard(nil, myUnderlyingReq, nil,
+						err)) // failure to load a broker is a failure to issue a request
 					return
 				}
 
 				resp, err := broker.waitResp(ctx, myIssue.req)
 				var errIsFromResp bool
 				if err == nil {
-					err = sharder.onResp(myUnderlyingReq, resp) // perform some potential cleanup, and potentially receive an error to retry
+					err = sharder.onResp(myUnderlyingReq,
+						resp) // perform some potential cleanup, and potentially receive an error to retry
 					if ke := (*kerr.Error)(nil); errors.As(err, &ke) {
 						errIsFromResp = true
 					}
@@ -2269,16 +2297,21 @@ func (cl *Client) handleShardedReq(ctx context.Context, req kmsg.Request) ([]Res
 				backoff := cl.cfg.retryBackoff(tries)
 				if err != nil &&
 					(reshardable && isPinned && errors.Is(err, errBrokerTooOld) && tries <= 3) ||
-					(retryTimeout == 0 || time.Now().Add(backoff).Sub(start) <= retryTimeout) && cl.shouldRetry(tries, err) && cl.waitTries(ctx, backoff) {
+					(retryTimeout == 0 || time.Now().Add(backoff).Sub(start) <= retryTimeout) && cl.shouldRetry(tries,
+						err) && cl.waitTries(ctx, backoff) {
 					// Non-reshardable re-requests just jump back to the
 					// top where the broker is loaded. This is the case on
 					// requests where the original request is split to
 					// dedicated brokers; we do not want to re-shard that.
 					if !reshardable {
-						l.Log(LogLevelDebug, "sharded request failed, reissuing without resharding", "req", kmsg.Key(myIssue.req.Key()).Name(), "time_since_start", time.Since(start), "tries", try.tries, "err", err)
+						l.Log(LogLevelDebug, "sharded request failed, reissuing without resharding", "req",
+							kmsg.Key(myIssue.req.Key()).Name(), "time_since_start", time.Since(start), "tries",
+							try.tries, "err", err)
 						goto start
 					}
-					l.Log(LogLevelDebug, "sharded request failed, resharding and reissuing", "req", kmsg.Key(myIssue.req.Key()).Name(), "time_since_start", time.Since(start), "tries", try.tries, "err", err)
+					l.Log(LogLevelDebug, "sharded request failed, resharding and reissuing", "req",
+						kmsg.Key(myIssue.req.Key()).Name(), "time_since_start", time.Since(start), "tries", try.tries,
+						"err", err)
 					issue(reqTry{tries, myUnderlyingReq, err})
 					return
 				}
@@ -2425,7 +2458,11 @@ func (cl *Client) fetchCachedMappedMetadata(ts ...string) (map[string]mappedMeta
 // fetchMappedMetadata provides a convenience type of working with metadata;
 // this is garbage heavy, so it is only used in one off requests in this
 // package.
-func (cl *Client) fetchMappedMetadata(ctx context.Context, topics []string, useCache bool) (map[string]mappedMetadataTopic, error) {
+func (cl *Client) fetchMappedMetadata(
+	ctx context.Context,
+	topics []string,
+	useCache bool,
+) (map[string]mappedMetadataTopic, error) {
 	var r map[string]mappedMetadataTopic
 	needed := topics
 	if useCache {
@@ -2659,12 +2696,13 @@ func (cl *listOffsetsSharder) shard(ctx context.Context, kreq kmsg.Request, _ er
 		})
 	}
 
-	return append(issues, unknowns.collect(mkreq, func(r *kmsg.ListOffsetsRequest, topic string, parts []kmsg.ListOffsetsRequestTopicPartition) {
-		reqTopic := kmsg.NewListOffsetsRequestTopic()
-		reqTopic.Topic = topic
-		reqTopic.Partitions = parts
-		r.Topics = append(r.Topics, reqTopic)
-	})...), true, nil // this is reshardable
+	return append(issues, unknowns.collect(mkreq,
+		func(r *kmsg.ListOffsetsRequest, topic string, parts []kmsg.ListOffsetsRequestTopicPartition) {
+			reqTopic := kmsg.NewListOffsetsRequestTopic()
+			reqTopic.Topic = topic
+			reqTopic.Partitions = parts
+			r.Topics = append(r.Topics, reqTopic)
+		})...), true, nil // this is reshardable
 }
 
 func (cl *listOffsetsSharder) onResp(_ kmsg.Request, kresp kmsg.Response) error {
@@ -2743,7 +2781,10 @@ func offsetFetchGroupToReq(requireStable bool, group kmsg.OffsetFetchRequestGrou
 	return req
 }
 
-func offsetFetchRespToGroup(req *kmsg.OffsetFetchRequest, resp *kmsg.OffsetFetchResponse) kmsg.OffsetFetchResponseGroup {
+func offsetFetchRespToGroup(
+	req *kmsg.OffsetFetchRequest,
+	resp *kmsg.OffsetFetchResponse,
+) kmsg.OffsetFetchResponseGroup {
 	g := kmsg.NewOffsetFetchResponseGroup()
 	g.Group = req.Group
 	g.ErrorCode = resp.ErrorCode
@@ -2939,7 +2980,10 @@ func (*offsetFetchSharder) merge(sresps []ResponseShard) (kmsg.Response, error) 
 // handles sharding FindCoordinatorRequest
 type findCoordinatorSharder struct{ *Client }
 
-func findCoordinatorRespCoordinatorIntoResp(c kmsg.FindCoordinatorResponseCoordinator, into *kmsg.FindCoordinatorResponse) {
+func findCoordinatorRespCoordinatorIntoResp(
+	c kmsg.FindCoordinatorResponseCoordinator,
+	into *kmsg.FindCoordinatorResponse,
+) {
 	into.NodeID = c.NodeID
 	into.Host = c.Host
 	into.Port = c.Port
@@ -2977,10 +3021,12 @@ func (*findCoordinatorSharder) shard(_ context.Context, kreq kmsg.Request, lastE
 		if len(req.CoordinatorKeys) <= 1 {
 			return []issueShard{{req: req, any: true}}, false, nil
 		}
-		return []issueShard{{
-			req: &pinReq{Request: req, pinMin: true, min: 4},
-			any: true,
-		}}, true, nil // this is "reshardable", in that we will split the request next
+		return []issueShard{
+			{
+				req: &pinReq{Request: req, pinMin: true, min: 4},
+				any: true,
+			},
+		}, true, nil // this is "reshardable", in that we will split the request next
 	}
 
 	var issues []issueShard
@@ -3215,12 +3261,13 @@ func (cl *deleteRecordsSharder) shard(ctx context.Context, kreq kmsg.Request, _ 
 		})
 	}
 
-	return append(issues, unknowns.collect(mkreq, func(r *kmsg.DeleteRecordsRequest, topic string, parts []kmsg.DeleteRecordsRequestTopicPartition) {
-		reqTopic := kmsg.NewDeleteRecordsRequestTopic()
-		reqTopic.Topic = topic
-		reqTopic.Partitions = parts
-		r.Topics = append(r.Topics, reqTopic)
-	})...), true, nil // this is reshardable
+	return append(issues, unknowns.collect(mkreq,
+		func(r *kmsg.DeleteRecordsRequest, topic string, parts []kmsg.DeleteRecordsRequestTopicPartition) {
+			reqTopic := kmsg.NewDeleteRecordsRequestTopic()
+			reqTopic.Topic = topic
+			reqTopic.Partitions = parts
+			r.Topics = append(r.Topics, reqTopic)
+		})...), true, nil // this is reshardable
 }
 
 func (cl *deleteRecordsSharder) onResp(_ kmsg.Request, kresp kmsg.Response) error {
@@ -3273,7 +3320,11 @@ func (*deleteRecordsSharder) merge(sresps []ResponseShard) (kmsg.Response, error
 // handle sharding OffsetForLeaderEpochRequest
 type offsetForLeaderEpochSharder struct{ *Client }
 
-func (cl *offsetForLeaderEpochSharder) shard(ctx context.Context, kreq kmsg.Request, _ error) ([]issueShard, bool, error) {
+func (cl *offsetForLeaderEpochSharder) shard(
+	ctx context.Context,
+	kreq kmsg.Request,
+	_ error,
+) ([]issueShard, bool, error) {
 	req := kreq.(*kmsg.OffsetForLeaderEpochRequest)
 
 	var need []string
@@ -3336,7 +3387,11 @@ func (cl *offsetForLeaderEpochSharder) shard(ctx context.Context, kreq kmsg.Requ
 		})
 	}
 
-	return append(issues, unknowns.collect(mkreq, func(r *kmsg.OffsetForLeaderEpochRequest, topic string, parts []kmsg.OffsetForLeaderEpochRequestTopicPartition) {
+	return append(issues, unknowns.collect(mkreq, func(
+		r *kmsg.OffsetForLeaderEpochRequest,
+		topic string,
+		parts []kmsg.OffsetForLeaderEpochRequestTopicPartition,
+	) {
 		reqTopic := kmsg.NewOffsetForLeaderEpochRequestTopic()
 		reqTopic.Topic = topic
 		reqTopic.Partitions = parts
@@ -3443,7 +3498,11 @@ func addPartitionsTxnToResp(resp *kmsg.AddPartitionsToTxnResponse) {
 	}
 }
 
-func (cl *addPartitionsToTxnSharder) shard(ctx context.Context, kreq kmsg.Request, _ error) ([]issueShard, bool, error) {
+func (cl *addPartitionsToTxnSharder) shard(
+	ctx context.Context,
+	kreq kmsg.Request,
+	_ error,
+) ([]issueShard, bool, error) {
 	req := kreq.(*kmsg.AddPartitionsToTxnRequest)
 
 	if len(req.Transactions) == 0 {
@@ -3830,7 +3889,12 @@ func (*describeConfigsSharder) shard(_ context.Context, kreq kmsg.Request, _ err
 	return issues, false, nil // this is not reshardable, but the any block can go anywhere
 }
 
-func (*describeConfigsSharder) onResp(kmsg.Request, kmsg.Response) error { return nil } // configs: topics not mapped, nothing retryable
+func (*describeConfigsSharder) onResp(
+	kmsg.Request,
+	kmsg.Response,
+) error {
+	return nil
+} // configs: topics not mapped, nothing retryable
 
 func (*describeConfigsSharder) merge(sresps []ResponseShard) (kmsg.Response, error) {
 	merged := kmsg.NewPtrDescribeConfigsResponse()
@@ -3893,7 +3957,12 @@ func (*alterConfigsSharder) shard(_ context.Context, kreq kmsg.Request, _ error)
 	return issues, false, nil // this is not reshardable, but the any block can go anywhere
 }
 
-func (*alterConfigsSharder) onResp(kmsg.Request, kmsg.Response) error { return nil } // configs: topics not mapped, nothing retryable
+func (*alterConfigsSharder) onResp(
+	kmsg.Request,
+	kmsg.Response,
+) error {
+	return nil
+} // configs: topics not mapped, nothing retryable
 
 func (*alterConfigsSharder) merge(sresps []ResponseShard) (kmsg.Response, error) {
 	merged := kmsg.NewPtrAlterConfigsResponse()
@@ -3908,7 +3977,11 @@ func (*alterConfigsSharder) merge(sresps []ResponseShard) (kmsg.Response, error)
 // handles sharding AlterReplicaLogDirsRequest
 type alterReplicaLogDirsSharder struct{ *Client }
 
-func (cl *alterReplicaLogDirsSharder) shard(ctx context.Context, kreq kmsg.Request, _ error) ([]issueShard, bool, error) {
+func (cl *alterReplicaLogDirsSharder) shard(
+	ctx context.Context,
+	kreq kmsg.Request,
+	_ error,
+) ([]issueShard, bool, error) {
 	req := kreq.(*kmsg.AlterReplicaLogDirsRequest)
 
 	needMap := make(map[string]struct{})
@@ -4025,7 +4098,12 @@ func (cl *alterReplicaLogDirsSharder) shard(ctx context.Context, kreq kmsg.Reque
 	return issues, true, nil // this is reshardable
 }
 
-func (*alterReplicaLogDirsSharder) onResp(kmsg.Request, kmsg.Response) error { return nil } // topic / partitions: not retried
+func (*alterReplicaLogDirsSharder) onResp(
+	kmsg.Request,
+	kmsg.Response,
+) error {
+	return nil
+} // topic / partitions: not retried
 
 // merge does not make sense for this function, but we provide a one anyway.
 func (*alterReplicaLogDirsSharder) merge(sresps []ResponseShard) (kmsg.Response, error) {
@@ -4254,7 +4332,11 @@ func (*deleteGroupsSharder) merge(sresps []ResponseShard) (kmsg.Response, error)
 // handle sharding IncrementalAlterConfigsRequest
 type incrementalAlterConfigsSharder struct{ *Client }
 
-func (*incrementalAlterConfigsSharder) shard(_ context.Context, kreq kmsg.Request, _ error) ([]issueShard, bool, error) {
+func (*incrementalAlterConfigsSharder) shard(
+	_ context.Context,
+	kreq kmsg.Request,
+	_ error,
+) ([]issueShard, bool, error) {
 	req := kreq.(*kmsg.IncrementalAlterConfigsRequest)
 
 	brokerReqs := make(map[int32][]kmsg.IncrementalAlterConfigsRequestResource)
@@ -4302,7 +4384,12 @@ func (*incrementalAlterConfigsSharder) shard(_ context.Context, kreq kmsg.Reques
 	return issues, false, nil // this is not reshardable, but the any block can go anywhere
 }
 
-func (*incrementalAlterConfigsSharder) onResp(kmsg.Request, kmsg.Response) error { return nil } // configs: topics not mapped, nothing retryable
+func (*incrementalAlterConfigsSharder) onResp(
+	kmsg.Request,
+	kmsg.Response,
+) error {
+	return nil
+} // configs: topics not mapped, nothing retryable
 
 func (*incrementalAlterConfigsSharder) merge(sresps []ResponseShard) (kmsg.Response, error) {
 	merged := kmsg.NewPtrIncrementalAlterConfigsResponse()
@@ -4429,7 +4516,11 @@ func (*describeProducersSharder) merge(sresps []ResponseShard) (kmsg.Response, e
 // handles sharding DescribeTransactionsRequest
 type describeTransactionsSharder struct{ *Client }
 
-func (cl *describeTransactionsSharder) shard(ctx context.Context, kreq kmsg.Request, _ error) ([]issueShard, bool, error) {
+func (cl *describeTransactionsSharder) shard(
+	ctx context.Context,
+	kreq kmsg.Request,
+	_ error,
+) ([]issueShard, bool, error) {
 	req := kreq.(*kmsg.DescribeTransactionsRequest)
 
 	coordinators := cl.loadCoordinators(ctx, coordinatorTypeTxn, req.TransactionalIDs...)
@@ -4490,7 +4581,10 @@ func (cl *describeTransactionsSharder) shard(ctx context.Context, kreq kmsg.Requ
 	return issues, true, nil // reshardable to load correct coordinators
 }
 
-func (cl *describeTransactionsSharder) onResp(_ kmsg.Request, kresp kmsg.Response) error { // cleanup any stale coordinators
+func (cl *describeTransactionsSharder) onResp(
+	_ kmsg.Request,
+	kresp kmsg.Response,
+) error { // cleanup any stale coordinators
 	resp := kresp.(*kmsg.DescribeTransactionsResponse)
 	var retErr error
 	for i := range resp.TransactionStates {

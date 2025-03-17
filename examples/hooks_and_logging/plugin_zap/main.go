@@ -10,14 +10,15 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/plugin/kzap"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/plugin/kzap"
 )
 
 var (
 	seedBrokers = flag.String("brokers", "localhost:9092", "comma delimited list of seed brokers")
 	topic       = flag.String("topic", "foo", "topic to consume for metric incrementing")
-	produce     = flag.Bool("produce", false, "if true, rather than consume, produce to the topic once per second (value \"foo\")")
+	produce     = flag.Bool("produce", false,
+		"if true, rather than consume, produce to the topic once per second (value \"foo\")")
 )
 
 func main() {

@@ -6,8 +6,8 @@ toolchain go1.23.3
 
 require (
 	github.com/aws/aws-sdk-go v1.55.6
-	github.com/twmb/franz-go v1.18.0
-	github.com/twmb/franz-go/pkg/kmsg v1.9.0
+	github.com/kellen-miller/franz-go v1.18.0
+	github.com/kellen-miller/franz-go/pkg/kmsg v1.9.0
 )
 
 require (

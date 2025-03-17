@@ -5,8 +5,8 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // DescribedProducer contains the state of a transactional producer's last
@@ -490,7 +490,11 @@ func (ls ListedTransactions) TransactionalIDs() []string {
 // producer.
 //
 // This may return *ShardErrors or *AuthError.
-func (cl *Client) ListTransactions(ctx context.Context, producerIDs []int64, filterStates []string) (ListedTransactions, error) {
+func (cl *Client) ListTransactions(
+	ctx context.Context,
+	producerIDs []int64,
+	filterStates []string,
+) (ListedTransactions, error) {
 	req := kmsg.NewPtrListTransactionsRequest()
 	req.ProducerIDFilters = producerIDs
 	req.StateFilters = filterStates
@@ -505,7 +509,8 @@ func (cl *Client) ListTransactions(ctx context.Context, producerIDs []int64, fil
 			return err
 		}
 		for _, t := range resp.TransactionStates {
-			list[t.TransactionalID] = ListedTransaction{ // txnID lives on one coordinator, no need to exist-check
+			list[t.TransactionalID] = ListedTransaction{
+				// txnID lives on one coordinator, no need to exist-check
 				Coordinator: b.NodeID,
 				TxnID:       t.TransactionalID,
 				ProducerID:  t.ProducerID,
@@ -746,7 +751,8 @@ func (cl *Client) WriteTxnMarkers(ctx context.Context, markers ...TxnMarkers) (T
 					if err := maybeAuthErr(rp.ErrorCode); err != nil {
 						return err
 					}
-					t.Partitions[rp.Partition] = TxnMarkersPartitionResponse{ // one partition globally, no need to exist-check
+					t.Partitions[rp.Partition] = TxnMarkersPartitionResponse{
+						// one partition globally, no need to exist-check
 						NodeID:     b.NodeID,
 						ProducerID: rm.ProducerID,
 						Topic:      rt.Topic,

@@ -30,7 +30,7 @@ import (
 	"context"
 	"sort"
 
-	"github.com/twmb/franz-go/pkg/kmsg/internal/kbin"
+	"github.com/kellen-miller/franz-go/pkg/kmsg/internal/kbin"
 )
 
 //go:generate cp ../kbin/primitives.go internal/kbin/
@@ -270,7 +270,8 @@ func (s *StickyMemberMetadata) readFrom(src []byte, unsafe bool) error {
 	}
 	need := numAssignments - int32(cap(s.CurrentAssignment))
 	if need > 0 {
-		s.CurrentAssignment = append(s.CurrentAssignment[:cap(s.CurrentAssignment)], make([]StickyMemberMetadataCurrentAssignment, need)...)
+		s.CurrentAssignment = append(s.CurrentAssignment[:cap(s.CurrentAssignment)],
+			make([]StickyMemberMetadataCurrentAssignment, need)...)
 	} else {
 		s.CurrentAssignment = s.CurrentAssignment[:numAssignments]
 	}

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // GroupMemberMetadata is the metadata that a client sent in a JoinGroup request.
@@ -236,7 +236,8 @@ func (cl *Client) ListGroups(ctx context.Context, filterStates ...string) (Liste
 			return err
 		}
 		for _, g := range resp.Groups {
-			list[g.Group] = ListedGroup{ // group only lives on one broker, no need to exist-check
+			list[g.Group] = ListedGroup{
+				// group only lives on one broker, no need to exist-check
 				Coordinator:  b.NodeID,
 				Group:        g.Group,
 				ProtocolType: g.ProtocolType,
@@ -446,7 +447,8 @@ func (cl *Client) DeleteGroups(ctx context.Context, groups ...string) (DeleteGro
 	return rs, shardErrEach(req, shards, func(kr kmsg.Response) error {
 		resp := kr.(*kmsg.DeleteGroupsResponse)
 		for _, g := range resp.Groups {
-			rs[g.Group] = DeleteGroupResponse{ // group is always on one broker, no need to exist-check
+			rs[g.Group] = DeleteGroupResponse{
+				// group is always on one broker, no need to exist-check
 				Group: g.Group,
 				Err:   kerr.ErrorForCode(g.ErrorCode),
 			}
@@ -1609,11 +1611,13 @@ func CalculateGroupLagWithStartOffsets(
 			tend := endOffsets[t.Topic]
 			for _, p := range t.Partitions {
 				var (
-					pcommit = OffsetResponse{Offset: Offset{
-						Topic:     t.Topic,
-						Partition: p,
-						At:        -1,
-					}}
+					pcommit = OffsetResponse{
+						Offset: Offset{
+							Topic:     t.Topic,
+							Partition: p,
+							At:        -1,
+						},
+					}
 					pend = ListedOffset{
 						Topic:     t.Topic,
 						Partition: p,

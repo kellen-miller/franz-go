@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // Principal is a principal that owns or renews a delegation token. This is the
@@ -132,7 +132,11 @@ func (cl *Client) CreateDelegationToken(ctx context.Context, d CreateDelegationT
 // timestamp and returns the new expiry timestamp.
 //
 // This can return *AuthError.
-func (cl *Client) RenewDelegationToken(ctx context.Context, hmac []byte, renewTime time.Duration) (expiryTimestamp time.Time, err error) {
+func (cl *Client) RenewDelegationToken(
+	ctx context.Context,
+	hmac []byte,
+	renewTime time.Duration,
+) (expiryTimestamp time.Time, err error) {
 	req := kmsg.NewPtrRenewDelegationTokenRequest()
 	req.HMAC = hmac
 	req.RenewTimeMillis = renewTime.Milliseconds()
@@ -156,7 +160,11 @@ func (cl *Client) RenewDelegationToken(ctx context.Context, hmac []byte, renewTi
 // immediately.
 //
 // This can return *AuthError.
-func (cl *Client) ExpireDelegationToken(ctx context.Context, hmac []byte, expiry time.Duration) (expiryTimestamp time.Time, err error) {
+func (cl *Client) ExpireDelegationToken(
+	ctx context.Context,
+	hmac []byte,
+	expiry time.Duration,
+) (expiryTimestamp time.Time, err error) {
 	req := kmsg.NewPtrExpireDelegationTokenRequest()
 	req.HMAC = hmac
 	req.ExpiryPeriodMillis = expiry.Milliseconds()

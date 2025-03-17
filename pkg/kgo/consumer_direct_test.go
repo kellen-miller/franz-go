@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
 )
 
 // Allow adding a topic to consume after the client is initialized with nothing

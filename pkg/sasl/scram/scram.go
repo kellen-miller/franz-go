@@ -18,7 +18,7 @@ import (
 
 	"golang.org/x/crypto/pbkdf2"
 
-	"github.com/twmb/franz-go/pkg/sasl"
+	"github.com/kellen-miller/franz-go/pkg/sasl"
 )
 
 // Auth contains information for authentication.
@@ -204,12 +204,13 @@ func (s *session) authenticateClient(serverFirstMsg []byte) ([]byte, error) {
 		return nil, fmt.Errorf("server iterations %d less than minimum 4096", iters)
 	}
 
-	//////////////////
+	// ////////////////
 	// CALCULATIONS //
-	//////////////////
+	// ////////////////
 
 	h := s.newhash()
-	saltedPassword := pbkdf2.Key([]byte(s.auth.Pass), salt, iters, h.Size(), s.newhash) // SaltedPassword := Hi(Normalize(password), salt, i)
+	saltedPassword := pbkdf2.Key([]byte(s.auth.Pass), salt, iters, h.Size(),
+		s.newhash) // SaltedPassword := Hi(Normalize(password), salt, i)
 
 	mac := hmac.New(s.newhash, saltedPassword)
 	if _, err = mac.Write([]byte("Client Key")); err != nil {

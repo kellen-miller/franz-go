@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr/funcr"
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
 )
 
 func TestLogger_Log(t *testing.T) {

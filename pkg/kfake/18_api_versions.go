@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 func init() { regKey(18, 0, 3) }

@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kbin"
+	"github.com/kellen-miller/franz-go/pkg/kbin"
 )
 
 // Partitioner creates topic partitioners to determine which partition messages
@@ -72,9 +72,9 @@ type TopicBackupIter interface {
 	Rem() int
 }
 
-////////////
+// //////////
 // SIMPLE // - BasicConsistent, Manual, RoundRobin
-////////////
+// //////////
 
 // BasicConsistentPartitioner wraps a single function to provide a Partitioner
 // and TopicPartitioner (that function is essentially a combination of
@@ -153,9 +153,9 @@ func (r *roundRobinTopicPartitioner) Partition(_ *Record, n int) int {
 	return ret
 }
 
-//////////////////
+// ////////////////
 // LEAST BACKUP //
-//////////////////
+// ////////////////
 
 // LeastBackupPartitioner prioritizes partitioning by three factors, in order:
 //
@@ -240,9 +240,9 @@ func (p *leastBackupTopicPartitioner) PartitionByBackup(_ *Record, n int, backup
 	return p.onPart
 }
 
-///////////////////
+// /////////////////
 // UNIFORM BYTES //
-///////////////////
+// /////////////////
 
 // UniformBytesPartitioner is a redux of the StickyPartitioner, proposed in
 // KIP-794 and release with the Java client in Kafka 3.3. This partitioner
@@ -396,9 +396,9 @@ func (p *uniformBytesTopicPartitioner) PartitionByBackup(r *Record, n int, backu
 	return p.onPart
 }
 
-/////////////////////
+// ///////////////////
 // STICKY & COMPAT // - Sticky, Kafka (custom hash), Sarama (custom hash)
-/////////////////////
+// ///////////////////
 
 // StickyPartitioner is the same as StickyKeyPartitioner, but with no logic to
 // consistently hash keys. That is, this only partitions according to the
@@ -569,9 +569,9 @@ func (p *stickyKeyTopicPartitioner) Partition(r *Record, n int) int {
 	return p.stickyTopicPartitioner.Partition(r, n)
 }
 
-/////////////
+// ///////////
 // MURMUR2 //
-/////////////
+// ///////////
 
 // Straight from the C++ code and from the Java code duplicating it.
 // https://github.com/apache/kafka/blob/d91a94e/clients/src/main/java/org/apache/kafka/common/utils/Utils.java#L383-L421

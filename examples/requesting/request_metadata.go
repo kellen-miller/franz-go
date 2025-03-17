@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/kmsg"
-	"github.com/twmb/franz-go/pkg/kversion"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kversion"
 )
 
 func main() {

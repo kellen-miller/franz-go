@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/crypto/pbkdf2"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
-	"github.com/twmb/franz-go/pkg/kversion"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kversion"
 )
 
 // ErrAndMessage is returned as the error from requests that were successfully
@@ -156,7 +156,8 @@ func (cl *Client) findCoordinators(ctx context.Context, kind int8, names ...stri
 				keyErr(c.Key, err)
 				continue
 			}
-			resps[c.Key] = FindCoordinatorResponse{ // key is always on one broker, no need to check existence
+			resps[c.Key] = FindCoordinatorResponse{
+				// key is always on one broker, no need to check existence
 				Name:       c.Key,
 				NodeID:     c.NodeID,
 				Host:       c.Host,
@@ -374,7 +375,11 @@ type DescribedClientQuotas []DescribedClientQuota
 
 // DescribeClientQuotas describes client quotas. If strict is true, the
 // response includes only the requested components.
-func (cl *Client) DescribeClientQuotas(ctx context.Context, strict bool, entityComponents []DescribeClientQuotaComponent) (DescribedClientQuotas, error) {
+func (cl *Client) DescribeClientQuotas(
+	ctx context.Context,
+	strict bool,
+	entityComponents []DescribeClientQuotaComponent,
+) (DescribedClientQuotas, error) {
 	req := kmsg.NewPtrDescribeClientQuotasRequest()
 	req.Strict = strict
 	for _, entity := range entityComponents {
@@ -446,11 +451,18 @@ func (cl *Client) AlterClientQuotas(ctx context.Context, entries []AlterClientQu
 // ValidateAlterClientQuotas validates an alter client quota request. This
 // returns exactly what AlterClientQuotas returns, but does not actually alter
 // quotas.
-func (cl *Client) ValidateAlterClientQuotas(ctx context.Context, entries []AlterClientQuotaEntry) (AlteredClientQuotas, error) {
+func (cl *Client) ValidateAlterClientQuotas(
+	ctx context.Context,
+	entries []AlterClientQuotaEntry,
+) (AlteredClientQuotas, error) {
 	return cl.alterClientQuotas(ctx, true, entries)
 }
 
-func (cl *Client) alterClientQuotas(ctx context.Context, validate bool, entries []AlterClientQuotaEntry) (AlteredClientQuotas, error) {
+func (cl *Client) alterClientQuotas(
+	ctx context.Context,
+	validate bool,
+	entries []AlterClientQuotaEntry,
+) (AlteredClientQuotas, error) {
 	req := kmsg.NewPtrAlterClientQuotasRequest()
 	req.ValidateOnly = validate
 	for _, entry := range entries {
@@ -713,7 +725,11 @@ func (as AlteredUserSCRAMs) Ok() bool {
 // credentials. Note that a username can only appear once across both upserts
 // and deletes. This modifies elements of the upsert slice that need to have a
 // salted password generated.
-func (cl *Client) AlterUserSCRAMs(ctx context.Context, del []DeleteSCRAM, upsert []UpsertSCRAM) (AlteredUserSCRAMs, error) {
+func (cl *Client) AlterUserSCRAMs(
+	ctx context.Context,
+	del []DeleteSCRAM,
+	upsert []UpsertSCRAM,
+) (AlteredUserSCRAMs, error) {
 	for i, u := range upsert {
 		if u.Password != "" {
 			if len(u.Salt) > 0 || len(u.SaltedPassword) > 0 {
@@ -917,7 +933,10 @@ type OffsetsForLeaderEpochs map[string]map[int32]OffsetForLeaderEpoch
 // type.
 //
 // This may return *ShardErrors or *AuthError.
-func (cl *Client) OffetForLeaderEpoch(ctx context.Context, r OffsetForLeaderEpochRequest) (OffsetsForLeaderEpochs, error) {
+func (cl *Client) OffetForLeaderEpoch(
+	ctx context.Context,
+	r OffsetForLeaderEpochRequest,
+) (OffsetsForLeaderEpochs, error) {
 	req := kmsg.NewPtrOffsetForLeaderEpochRequest()
 	for t, ps := range r {
 		rt := kmsg.NewOffsetForLeaderEpochRequestTopic()
@@ -944,7 +963,8 @@ func (cl *Client) OffetForLeaderEpoch(ctx context.Context, r OffsetForLeaderEpoc
 				if err := maybeAuthErr(rp.ErrorCode); err != nil {
 					return err
 				}
-				lps[rp.Partition] = OffsetForLeaderEpoch{ // one partition globally, no need to exist check
+				lps[rp.Partition] = OffsetForLeaderEpoch{
+					// one partition globally, no need to exist check
 					NodeID:      b.NodeID,
 					Topic:       rt.Topic,
 					Partition:   rp.Partition,

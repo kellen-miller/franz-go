@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
 )
 
 var (
@@ -52,7 +52,8 @@ func (pc *pconsumer) consume() {
 			fmt.Printf("Some sort of work done, about to commit t %s p %d\n", pc.topic, pc.partition)
 			err := pc.cl.CommitRecords(context.Background(), recs...)
 			if err != nil {
-				fmt.Printf("Error when committing offsets to kafka err: %v t: %s p: %d offset %d\n", err, pc.topic, pc.partition, recs[len(recs)-1].Offset+1)
+				fmt.Printf("Error when committing offsets to kafka err: %v t: %s p: %d offset %d\n", err, pc.topic,
+					pc.partition, recs[len(recs)-1].Offset+1)
 			}
 		}
 	}

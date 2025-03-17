@@ -7,13 +7,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
-/////////////
+// ///////////
 // HELPERS // -- ugly types to eliminate the toil of nil maps and lookups
-/////////////
+// ///////////
 
 func dupmsi32(m map[string]int32) map[string]int32 {
 	d := make(map[string]int32, len(m))
@@ -123,9 +123,9 @@ func (m mtmps) remove(t string, p int32) {
 	}
 }
 
-////////////
+// //////////
 // PAUSED // -- types for pausing topics and partitions
-////////////
+// //////////
 
 type pausedTopics map[string]pausedPartitions
 
@@ -238,9 +238,9 @@ func (m pausedTopics) clone() pausedTopics {
 	return dup
 }
 
-//////////
+// ////////
 // GUTS // -- the key types for storing important metadata for topics & partitions
-//////////
+// ////////
 
 func newTopicPartitions() *topicPartitions {
 	parts := new(topicPartitions)
@@ -572,7 +572,8 @@ func (old *topicPartition) migrateProductionTo(new *topicPartition) { //nolint:r
 // This is a little bit different from above, in that we do this logic only
 // after stopping a consumer session. With the consumer session stopped, we
 // have fewer concurrency issues to worry about.
-func (old *topicPartition) migrateCursorTo( //nolint:revive // old/new naming makes this clearer
+func (old *topicPartition) migrateCursorTo(
+	//nolint:revive // old/new naming makes this clearer
 	new *topicPartition,
 	css *consumerSessionStopper,
 ) {
@@ -628,7 +629,11 @@ func (k *kip951move) hasRecBuf(rb *recBuf) bool {
 	return ok
 }
 
-func (k *kip951move) maybeAddProducePartition(resp *kmsg.ProduceResponse, p *kmsg.ProduceResponseTopicPartition, rb *recBuf) bool {
+func (k *kip951move) maybeAddProducePartition(
+	resp *kmsg.ProduceResponse,
+	p *kmsg.ProduceResponseTopicPartition,
+	rb *recBuf,
+) bool {
 	if resp.GetVersion() < 10 ||
 		p.ErrorCode != kerr.NotLeaderForPartition.Code ||
 		len(resp.Brokers) == 0 ||
@@ -657,7 +662,11 @@ func (k *kip951move) maybeAddProducePartition(resp *kmsg.ProduceResponse, p *kms
 	return true
 }
 
-func (k *kip951move) maybeAddFetchPartition(resp *kmsg.FetchResponse, p *kmsg.FetchResponseTopicPartition, c *cursor) bool {
+func (k *kip951move) maybeAddFetchPartition(
+	resp *kmsg.FetchResponse,
+	p *kmsg.FetchResponseTopicPartition,
+	c *cursor,
+) bool {
 	if resp.GetVersion() < 16 ||
 		p.ErrorCode != kerr.NotLeaderForPartition.Code ||
 		len(resp.Brokers) == 0 ||
@@ -786,7 +795,11 @@ func (k *kip951move) doMove(cl *Client) {
 	// same (this allows easier injection of failures in local testing).  A
 	// higher epoch can come from a concurrent metadata update that
 	// actually performed the move first.
-	modifyP := func(d *topicPartitionsData, partition int32, td topicPartitionData) (old, new *topicPartition, modified bool) {
+	modifyP := func(
+		d *topicPartitionsData,
+		partition int32,
+		td topicPartitionData,
+	) (old, new *topicPartition, modified bool) {
 		old = d.partitions[partition]
 		if old.leaderEpoch > td.leaderEpoch {
 			return nil, nil, false
@@ -820,7 +833,8 @@ func (k *kip951move) doMove(cl *Client) {
 		// We now have to mirror the new partition back to the topic
 		// slice that will be atomically stored.
 		d.partitions[partition] = new
-		idxWritable := sort.Search(len(d.writablePartitions), func(i int) bool { return d.writablePartitions[i].partition() >= partition })
+		idxWritable := sort.Search(len(d.writablePartitions),
+			func(i int) bool { return d.writablePartitions[i].partition() >= partition })
 		if idxWritable < len(d.writablePartitions) && d.writablePartitions[idxWritable].partition() == partition {
 			if d.writablePartitions[idxWritable] != old {
 				panic("invalid invariant -- partition in writablePartitions != partition at expected index in partitions")
@@ -918,5 +932,6 @@ func (css *consumerSessionStopper) maybeRestart() {
 	}
 	session := css.cl.consumer.startNewSession(css.tpsPrior)
 	defer session.decWorker()
-	css.reloadOffsets.loadWithSession(session, "resuming reload offsets after session stopped for cursor migrating in metadata")
+	css.reloadOffsets.loadWithSession(session,
+		"resuming reload offsets after session stopped for cursor migrating in metadata")
 }

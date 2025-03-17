@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kmsg"
-	"github.com/twmb/franz-go/pkg/kversion"
-	"github.com/twmb/franz-go/pkg/sasl"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kversion"
+	"github.com/kellen-miller/franz-go/pkg/sasl"
 )
 
 // Opt is an option to configure a client.
@@ -64,9 +64,9 @@ func (groupOpt) groupOpt()             {}
 // particularly reconfiguring what to consume from -- but most areas are
 // static.
 type cfg struct {
-	/////////////////////
+	// ///////////////////
 	// GENERAL SECTION //
-	/////////////////////
+	// ///////////////////
 
 	id                     *string // client ID
 	dialFn                 func(context.Context, string, string) (net.Conn, error)
@@ -100,9 +100,9 @@ type cfg struct {
 
 	hooks hooks
 
-	//////////////////////
+	// ////////////////////
 	// PRODUCER SECTION //
-	//////////////////////
+	// ////////////////////
 
 	txnID              *string
 	txnTimeout         time.Duration
@@ -129,9 +129,9 @@ type cfg struct {
 	stopOnDataLoss bool
 	onDataLoss     func(string, int32)
 
-	//////////////////////
+	// ////////////////////
 	// CONSUMER SECTION //
-	//////////////////////
+	// ////////////////////
 
 	maxWait        int32
 	minBytes       int32
@@ -151,9 +151,9 @@ type cfg struct {
 	partitions map[string]map[int32]Offset // partitions to directly consume from
 	regex      bool
 
-	////////////////////////////
+	// //////////////////////////
 	// CONSUMER GROUP SECTION //
-	////////////////////////////
+	// //////////////////////////
 
 	group      string          // group we are in
 	instanceID *string         // optional group instance ID
@@ -170,7 +170,10 @@ type cfg struct {
 	onLost     func(context.Context, *Client, map[string][]int32)
 	onFetched  func(context.Context, *Client, *kmsg.OffsetFetchResponse) error
 
-	adjustOffsetsBeforeAssign func(ctx context.Context, offsets map[string]map[int32]Offset) (map[string]map[int32]Offset, error)
+	adjustOffsetsBeforeAssign func(
+		ctx context.Context,
+		offsets map[string]map[int32]Offset,
+	) (map[string]map[int32]Offset, error)
 
 	blockRebalanceOnPoll bool
 
@@ -273,51 +276,96 @@ func (cfg *cfg) validate() error {
 		//
 		// We cannot enforce if a single batch is larger than the max
 		// fetch bytes limit, but hopefully we do not run into that.
-		{v: int64(cfg.maxBrokerWriteBytes), allowed: int64(cfg.maxRecordBatchBytes), badcmp: i64lt, fmt: "max broker write bytes %v is erroneously less than max record batch bytes %v"},
-		{v: int64(cfg.maxBrokerReadBytes), allowed: int64(cfg.maxBytes), badcmp: i64lt, fmt: "max broker read bytes %v is erroneously less than max fetch bytes %v"},
+		{
+			v: int64(cfg.maxBrokerWriteBytes), allowed: int64(cfg.maxRecordBatchBytes), badcmp: i64lt,
+			fmt: "max broker write bytes %v is erroneously less than max record batch bytes %v",
+		},
+		{
+			v: int64(cfg.maxBrokerReadBytes), allowed: int64(cfg.maxBytes), badcmp: i64lt,
+			fmt: "max broker read bytes %v is erroneously less than max fetch bytes %v",
+		},
 
 		// 0 <= allowed concurrency
 		{name: "max concurrent fetches", v: int64(cfg.maxConcurrentFetches), allowed: 0, badcmp: i64lt},
 
 		// 1s <= request timeout overhead <= 15m
-		{name: "request timeout max overhead", v: int64(cfg.requestTimeoutOverhead), allowed: int64(15 * time.Minute), badcmp: i64gt, durs: true},
-		{name: "request timeout min overhead", v: int64(cfg.requestTimeoutOverhead), allowed: int64(time.Second), badcmp: i64lt, durs: true},
+		{
+			name: "request timeout max overhead", v: int64(cfg.requestTimeoutOverhead),
+			allowed: int64(15 * time.Minute), badcmp: i64gt, durs: true,
+		},
+		{
+			name: "request timeout min overhead", v: int64(cfg.requestTimeoutOverhead), allowed: int64(time.Second),
+			badcmp: i64lt, durs: true,
+		},
 
 		// 1s <= conn idle <= 15m
-		{name: "conn min idle timeout", v: int64(cfg.connIdleTimeout), allowed: int64(time.Second), badcmp: i64lt, durs: true},
-		{name: "conn max idle timeout", v: int64(cfg.connIdleTimeout), allowed: int64(15 * time.Minute), badcmp: i64gt, durs: true},
+		{
+			name: "conn min idle timeout", v: int64(cfg.connIdleTimeout), allowed: int64(time.Second), badcmp: i64lt,
+			durs: true,
+		},
+		{
+			name: "conn max idle timeout", v: int64(cfg.connIdleTimeout), allowed: int64(15 * time.Minute),
+			badcmp: i64gt, durs: true,
+		},
 
 		// 10ms <= metadata <= 1hr
 		{name: "metadata max age", v: int64(cfg.metadataMaxAge), allowed: int64(time.Hour), badcmp: i64gt, durs: true},
-		{name: "metadata min age", v: int64(cfg.metadataMinAge), allowed: int64(10 * time.Millisecond), badcmp: i64lt, durs: true},
-		{v: int64(cfg.metadataMaxAge), allowed: int64(cfg.metadataMinAge), badcmp: i64lt, fmt: "metadata max age %v is erroneously less than metadata min age %v", durs: true},
+		{
+			name: "metadata min age", v: int64(cfg.metadataMinAge), allowed: int64(10 * time.Millisecond),
+			badcmp: i64lt, durs: true,
+		},
+		{
+			v: int64(cfg.metadataMaxAge), allowed: int64(cfg.metadataMinAge), badcmp: i64lt,
+			fmt: "metadata max age %v is erroneously less than metadata min age %v", durs: true,
+		},
 
 		// Some random producer settings.
 		{name: "max buffered records", v: cfg.maxBufferedRecords, allowed: 1, badcmp: i64lt},
 		{name: "max buffered bytes", v: cfg.maxBufferedBytes, allowed: 0, badcmp: i64lt},
 		{name: "linger", v: int64(cfg.linger), allowed: int64(time.Minute), badcmp: i64gt, durs: true},
-		{name: "produce timeout", v: int64(cfg.produceTimeout), allowed: int64(100 * time.Millisecond), badcmp: i64lt, durs: true},
-		{name: "record timeout", v: int64(cfg.recordTimeout), allowed: int64(time.Second), badcmp: func(l, r int64) (bool, string) {
-			if l == 0 {
-				return false, "" // we print nothing when things are good
-			}
-			return l < r, "less"
-		}, durs: true},
+		{
+			name: "produce timeout", v: int64(cfg.produceTimeout), allowed: int64(100 * time.Millisecond),
+			badcmp: i64lt, durs: true,
+		},
+		{
+			name: "record timeout", v: int64(cfg.recordTimeout), allowed: int64(time.Second),
+			badcmp: func(l, r int64) (bool, string) {
+				if l == 0 {
+					return false, "" // we print nothing when things are good
+				}
+				return l < r, "less"
+			}, durs: true,
+		},
 
 		// Consumer settings. maxWait is stored as int32 milliseconds,
 		// but we want the error message to be in the nice
 		// time.Duration string format.
-		{name: "max fetch wait", v: int64(cfg.maxWait) * int64(time.Millisecond), allowed: int64(10 * time.Millisecond), badcmp: i64lt, durs: true},
+		{
+			name: "max fetch wait", v: int64(cfg.maxWait) * int64(time.Millisecond),
+			allowed: int64(10 * time.Millisecond), badcmp: i64lt, durs: true,
+		},
 
 		// Group settings.
 		{name: "number of balancers", v: int64(len(cfg.balancers)), allowed: 1, badcmp: i64lt},
 		{name: "consumer protocol length", v: int64(len(cfg.protocol)), allowed: 1, badcmp: i64lt},
 
-		{name: "session timeout", v: int64(cfg.sessionTimeout), allowed: int64(100 * time.Millisecond), badcmp: i64lt, durs: true},
-		{name: "rebalance timeout", v: int64(cfg.rebalanceTimeout), allowed: int64(100 * time.Millisecond), badcmp: i64lt, durs: true},
-		{name: "autocommit interval", v: int64(cfg.autocommitInterval), allowed: int64(100 * time.Millisecond), badcmp: i64lt, durs: true},
+		{
+			name: "session timeout", v: int64(cfg.sessionTimeout), allowed: int64(100 * time.Millisecond),
+			badcmp: i64lt, durs: true,
+		},
+		{
+			name: "rebalance timeout", v: int64(cfg.rebalanceTimeout), allowed: int64(100 * time.Millisecond),
+			badcmp: i64lt, durs: true,
+		},
+		{
+			name: "autocommit interval", v: int64(cfg.autocommitInterval), allowed: int64(100 * time.Millisecond),
+			badcmp: i64lt, durs: true,
+		},
 
-		{v: int64(cfg.heartbeatInterval), allowed: int64(cfg.rebalanceTimeout) * int64(time.Millisecond), badcmp: i64gt, durs: true, fmt: "heartbeat interval %v is erroneously larger than the session timeout %v"},
+		{
+			v: int64(cfg.heartbeatInterval), allowed: int64(cfg.rebalanceTimeout) * int64(time.Millisecond),
+			badcmp: i64gt, durs: true, fmt: "heartbeat interval %v is erroneously larger than the session timeout %v",
+		},
 	} {
 		bad, cmp := limit.badcmp(limit.v, limit.allowed)
 		if bad {
@@ -328,7 +376,8 @@ func (cfg *cfg) validate() error {
 				return fmt.Errorf(limit.fmt, limit.v, limit.allowed)
 			}
 			if limit.durs {
-				return fmt.Errorf("%s %v is %s than allowed %v", limit.name, time.Duration(limit.v), cmp, time.Duration(limit.allowed))
+				return fmt.Errorf("%s %v is %s than allowed %v", limit.name, time.Duration(limit.v), cmp,
+					time.Duration(limit.allowed))
 			}
 			return fmt.Errorf("%s %v is %s than allowed %v", limit.name, limit.v, cmp, limit.allowed)
 		}
@@ -362,7 +411,8 @@ func (cfg *cfg) validate() error {
 	if cfg.topics != nil && cfg.partitions != nil {
 		for topic := range cfg.partitions {
 			if _, exists := cfg.topics[topic]; exists {
-				return fmt.Errorf("topic %q seen in both ConsumePartitions and ConsumeTopics; these options are a union, it is invalid to specify specific partitions for a topic while also consuming the entire topic", topic)
+				return fmt.Errorf("topic %q seen in both ConsumePartitions and ConsumeTopics; these options are a union, it is invalid to specify specific partitions for a topic while also consuming the entire topic",
+					topic)
 			}
 		}
 	}
@@ -419,7 +469,7 @@ func softwareVersion() string {
 	info, ok := debug.ReadBuildInfo()
 	if ok {
 		for _, dep := range info.Deps {
-			if dep.Path == "github.com/twmb/franz-go" {
+			if dep.Path == "github.com/kellen-miller/franz-go" {
 				if reVersion.MatchString(dep.Version) {
 					return dep.Version
 				}
@@ -432,9 +482,9 @@ func softwareVersion() string {
 func defaultCfg() cfg {
 	defaultID := "kgo"
 	return cfg{
-		/////////////
+		// ///////////
 		// general //
-		/////////////
+		// ///////////
 		id: &defaultID,
 
 		dialTimeout:            10 * time.Second,
@@ -487,9 +537,9 @@ func defaultCfg() cfg {
 		metadataMinAge:     5 * time.Second,
 		missingTopicDelete: 15 * time.Second,
 
-		//////////////
+		// ////////////
 		// producer //
-		//////////////
+		// ////////////
 
 		txnTimeout:          40 * time.Second,
 		acks:                AllISRAcks(),
@@ -503,9 +553,9 @@ func defaultCfg() cfg {
 		partitioner:         UniformBytesPartitioner(64<<10, true, true, nil),
 		txnBackoff:          20 * time.Millisecond,
 
-		//////////////
+		// ////////////
 		// consumer //
-		//////////////
+		// ////////////
 
 		maxWait:        5000,
 		minBytes:       1,
@@ -516,9 +566,9 @@ func defaultCfg() cfg {
 
 		maxConcurrentFetches: 0, // unbounded default
 
-		///////////
+		// /////////
 		// group //
-		///////////
+		// /////////
 
 		balancers: []GroupBalancer{
 			CooperativeStickyBalancer(),
@@ -533,9 +583,9 @@ func defaultCfg() cfg {
 	}
 }
 
-//////////////////////////
+// ////////////////////////
 // CLIENT CONFIGURATION //
-//////////////////////////
+// ////////////////////////
 
 // ClientID uses id for all requests sent to Kafka brokers, overriding the
 // default "kgo".
@@ -850,9 +900,9 @@ func ConsiderMissingTopicDeletedAfter(t time.Duration) Opt {
 	return clientOpt{func(cfg *cfg) { cfg.missingTopicDelete = t }}
 }
 
-////////////////////////////
+// //////////////////////////
 // PRODUCER CONFIGURATION //
-////////////////////////////
+// //////////////////////////
 
 // DefaultProduceTopic sets the default topic to produce to if the topic field
 // is empty in a Record.
@@ -1149,9 +1199,9 @@ func TransactionTimeout(timeout time.Duration) ProducerOpt {
 	return producerOpt{func(cfg *cfg) { cfg.txnTimeout = timeout }}
 }
 
-////////////////////////////
+// //////////////////////////
 // CONSUMER CONFIGURATION //
-////////////////////////////
+// //////////////////////////
 
 // FetchMaxWait sets the maximum amount of time a broker will wait for a
 // fetch response to hit the minimum number of required bytes before returning,
@@ -1312,12 +1362,14 @@ func KeepControlRecords() ConsumerOpt {
 // By default, consuming will start at the beginning of partitions. To change
 // this, use the ConsumeResetOffset option.
 func ConsumeTopics(topics ...string) ConsumerOpt {
-	return consumerOpt{func(cfg *cfg) {
-		cfg.topics = make(map[string]*regexp.Regexp, len(topics))
-		for _, topic := range topics {
-			cfg.topics[topic] = nil
-		}
-	}}
+	return consumerOpt{
+		func(cfg *cfg) {
+			cfg.topics = make(map[string]*regexp.Regexp, len(topics))
+			for _, topic := range topics {
+				cfg.topics[topic] = nil
+			}
+		},
+	}
 }
 
 // ConsumePartitions sets partitions to consume from directly and the offsets
@@ -1411,9 +1463,9 @@ func KeepRetryableFetchErrors() ConsumerOpt {
 	return consumerOpt{func(cfg *cfg) { cfg.keepRetryableFetchErrors = true }}
 }
 
-//////////////////////////////////
+// ////////////////////////////////
 // CONSUMER GROUP CONFIGURATION //
-//////////////////////////////////
+// ////////////////////////////////
 
 // ConsumerGroup sets the consumer group for the client to join and consume in.
 // This option is required if using any other group options.
@@ -1566,7 +1618,12 @@ func BlockRebalanceOnPoll() GroupOpt {
 //
 // This function is called after OnPartitionsAssigned and may be called before
 // or after OnPartitionsRevoked.
-func AdjustFetchOffsetsFn(adjustOffsetsBeforeAssign func(context.Context, map[string]map[int32]Offset) (map[string]map[int32]Offset, error)) GroupOpt {
+func AdjustFetchOffsetsFn(
+	adjustOffsetsBeforeAssign func(
+		context.Context,
+		map[string]map[int32]Offset,
+	) (map[string]map[int32]Offset, error),
+) GroupOpt {
 	return groupOpt{func(cfg *cfg) { cfg.adjustOffsetsBeforeAssign = adjustOffsetsBeforeAssign }}
 }
 
@@ -1750,9 +1807,11 @@ func GroupProtocol(protocol string) GroupOpt {
 // AutoCommitCallback sets the callback to use if autocommitting is enabled.
 // This overrides the default callback that logs errors and continues.
 func AutoCommitCallback(fn func(*Client, *kmsg.OffsetCommitRequest, *kmsg.OffsetCommitResponse, error)) GroupOpt {
-	return groupOpt{func(cfg *cfg) {
-		if fn != nil {
-			cfg.commitCallback, cfg.setCommitCallback = fn, true
-		}
-	}}
+	return groupOpt{
+		func(cfg *cfg) {
+			if fn != nil {
+				cfg.commitCallback, cfg.setCommitCallback = fn, true
+			}
+		},
+	}
 }

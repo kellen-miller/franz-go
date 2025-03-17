@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kbin"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kbin"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 func TestClient_Produce(t *testing.T) {
@@ -150,7 +150,8 @@ func TestIssue769(t *testing.T) {
 		case <-timer.C:
 			t.Fatal("expected record to fail within 3s")
 		}
-		if pe := (*errProducerIDLoadFail)(nil); !errors.As(rerr, &pe) || !(errors.Is(pe.err, context.Canceled) || strings.Contains(pe.err.Error(), "canceled")) {
+		if pe := (*errProducerIDLoadFail)(nil); !errors.As(rerr, &pe) || !(errors.Is(pe.err,
+			context.Canceled) || strings.Contains(pe.err.Error(), "canceled")) {
 			t.Errorf("got %v != exp errProducerIDLoadFail{context.Canceled}", rerr)
 		}
 	}
@@ -367,7 +368,8 @@ func TestRecBatchAppendTo(t *testing.T) {
 		}
 		got := gotFull[lengthPrefix:]
 		if ourBatchSize != int32(len(got)) {
-			t.Errorf("check %d: incorrect record prefixing written length %d != actual %d", checkNum, ourBatchSize, len(got))
+			t.Errorf("check %d: incorrect record prefixing written length %d != actual %d", checkNum, ourBatchSize,
+				len(got))
 		}
 
 		if !bytes.Equal(got, exp) {
@@ -401,13 +403,17 @@ func TestRecBatchAppendTo(t *testing.T) {
 		TransactionID: &txid,
 		Acks:          -1,
 		TimeoutMillis: 1000,
-		Topics: []kmsg.ProduceRequestTopic{{
-			Topic: "topic",
-			Partitions: []kmsg.ProduceRequestTopicPartition{{
-				Partition: 1,
-				Records:   kbatch.AppendTo(nil),
-			}},
-		}},
+		Topics: []kmsg.ProduceRequestTopic{
+			{
+				Topic: "topic",
+				Partitions: []kmsg.ProduceRequestTopicPartition{
+					{
+						Partition: 1,
+						Records:   kbatch.AppendTo(nil),
+					},
+				},
+			},
+		},
 	}
 	ourReq := produceRequest{
 		version:       version,
@@ -561,13 +567,17 @@ func TestMessageSetAppendTo(t *testing.T) {
 		Version:       0,
 		Acks:          -1,
 		TimeoutMillis: 1000,
-		Topics: []kmsg.ProduceRequestTopic{{
-			Topic: "topic",
-			Partitions: []kmsg.ProduceRequestTopicPartition{{
-				Partition: 1,
-				Records:   kset0rawc,
-			}},
-		}},
+		Topics: []kmsg.ProduceRequestTopic{
+			{
+				Topic: "topic",
+				Partitions: []kmsg.ProduceRequestTopicPartition{
+					{
+						Partition: 1,
+						Records:   kset0rawc,
+					},
+				},
+			},
+		},
 	}
 	ourReq := produceRequest{
 		version:    0,

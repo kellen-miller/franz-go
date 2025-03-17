@@ -5,8 +5,8 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // ListTopics issues a metadata request and returns TopicDetails. Specific
@@ -177,7 +177,14 @@ func (cl *Client) ValidateCreateTopics(
 	return cl.createTopics(ctx, true, partitions, replicationFactor, configs, topics)
 }
 
-func (cl *Client) createTopics(ctx context.Context, dry bool, p int32, rf int16, configs map[string]*string, topics []string) (CreateTopicResponses, error) {
+func (cl *Client) createTopics(
+	ctx context.Context,
+	dry bool,
+	p int32,
+	rf int16,
+	configs map[string]*string,
+	topics []string,
+) (CreateTopicResponses, error) {
 	if len(topics) == 0 {
 		return make(CreateTopicResponses), nil
 	}
@@ -411,7 +418,11 @@ func (rs DeleteRecordsResponses) Sorted() []DeleteRecordsResponse {
 //
 // If the topic or partition does not exist, this returns
 // kerr.UnknownTopicOrPartition.
-func (rs DeleteRecordsResponses) On(topic string, partition int32, fn func(*DeleteRecordsResponse) error) (DeleteRecordsResponse, error) {
+func (rs DeleteRecordsResponses) On(
+	topic string,
+	partition int32,
+	fn func(*DeleteRecordsResponse) error,
+) (DeleteRecordsResponse, error) {
 	if len(rs) > 0 {
 		t, ok := rs[topic]
 		if ok {
@@ -523,7 +534,10 @@ func (rs CreatePartitionsResponses) Sorted() []CreatePartitionsResponse {
 // well; any modifications within fn are modifications on the returned copy.
 //
 // If the topic does not exist, this returns kerr.UnknownTopicOrPartition.
-func (rs CreatePartitionsResponses) On(topic string, fn func(*CreatePartitionsResponse) error) (CreatePartitionsResponse, error) {
+func (rs CreatePartitionsResponses) On(
+	topic string,
+	fn func(*CreatePartitionsResponse) error,
+) (CreatePartitionsResponse, error) {
 	if len(rs) > 0 {
 		r, ok := rs[topic]
 		if ok {
@@ -586,7 +600,11 @@ func (cl *Client) UpdatePartitions(ctx context.Context, set int, topics ...strin
 // This uses the same logic as CreatePartitions, but with the request's
 // ValidateOnly field set to true. The response is the same response you would
 // receive from CreatePartitions, but no partitions are actually added.
-func (cl *Client) ValidateCreatePartitions(ctx context.Context, add int, topics ...string) (CreatePartitionsResponses, error) {
+func (cl *Client) ValidateCreatePartitions(
+	ctx context.Context,
+	add int,
+	topics ...string,
+) (CreatePartitionsResponses, error) {
 	return cl.createPartitions(ctx, true, add, -1, topics)
 }
 
@@ -596,11 +614,20 @@ func (cl *Client) ValidateCreatePartitions(ctx context.Context, add int, topics 
 // This uses the same logic as UpdatePartitions, but with the request's
 // ValidateOnly field set to true. The response is the same response you would
 // receive from UpdatePartitions, but no partitions are actually added.
-func (cl *Client) ValidateUpdatePartitions(ctx context.Context, set int, topics ...string) (CreatePartitionsResponses, error) {
+func (cl *Client) ValidateUpdatePartitions(
+	ctx context.Context,
+	set int,
+	topics ...string,
+) (CreatePartitionsResponses, error) {
 	return cl.createPartitions(ctx, true, -1, set, topics)
 }
 
-func (cl *Client) createPartitions(ctx context.Context, dry bool, add, set int, topics []string) (CreatePartitionsResponses, error) {
+func (cl *Client) createPartitions(
+	ctx context.Context,
+	dry bool,
+	add, set int,
+	topics []string,
+) (CreatePartitionsResponses, error) {
 	if len(topics) == 0 {
 		return make(CreatePartitionsResponses), nil
 	}

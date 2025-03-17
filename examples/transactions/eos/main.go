@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
 )
 
 var (
@@ -20,8 +20,10 @@ var (
 
 	group = flag.String("group", "eos-example-group", "group to use for EOS consuming")
 
-	produceTxnID = flag.String("produce-txn-id", "eos-example-input-producer", "transactional ID to use for the input producer")
-	consumeTxnID = flag.String("consume-txn-id", "eos-example-eos-consumer", "transactional ID to use for the EOS consumer/producer")
+	produceTxnID = flag.String("produce-txn-id", "eos-example-input-producer",
+		"transactional ID to use for the input producer")
+	consumeTxnID = flag.String("consume-txn-id", "eos-example-eos-consumer",
+		"transactional ID to use for the EOS consumer/producer")
 )
 
 func die(msg string, args ...any) {

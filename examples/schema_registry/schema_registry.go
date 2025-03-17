@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/hamba/avro/v2"
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/sr"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/sr"
 )
 
 var (

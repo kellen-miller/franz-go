@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -75,9 +75,9 @@ func (c *Cluster) handleSASL(creq *clientReq) (allow bool) {
 	}
 }
 
-///////////
+// /////////
 // PLAIN //
-///////////
+// /////////
 
 func saslSplitPlain(auth []byte) (user, pass string, err error) {
 	parts := strings.SplitN(string(auth), "\x00", 3)
@@ -90,9 +90,9 @@ func saslSplitPlain(auth []byte) (user, pass string, err error) {
 	return parts[1], parts[2], nil
 }
 
-///////////
+// /////////
 // SCRAM //
-///////////
+// /////////
 
 func newScramAuth(mechanism, pass string) scramAuth {
 	var saltedPass []byte

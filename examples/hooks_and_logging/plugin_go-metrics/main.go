@@ -12,15 +12,16 @@ import (
 	"time"
 
 	"github.com/rcrowley/go-metrics"
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/plugin/kgmetrics"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/plugin/kgmetrics"
 )
 
 var (
 	debugPort   = flag.Int("debug-port", 9999, "localhost port that metrics can be curled from")
 	seedBrokers = flag.String("brokers", "localhost:9092", "comma delimited list of seed brokers")
 	topic       = flag.String("topic", "foo", "topic to consume for metric incrementing")
-	produce     = flag.Bool("produce", false, "if true, rather than consume, produce to the topic once per second (value \"foo\")")
+	produce     = flag.Bool("produce", false,
+		"if true, rather than consume, produce to the topic once per second (value \"foo\")")
 )
 
 func main() {

@@ -10,8 +10,8 @@
 package kphuslog
 
 import (
-	"github.com/phuslu/log"
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	
 )
 
 // Logger provides the kgo.Logger interface for usage in kgo.WithLogger when

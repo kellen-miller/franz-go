@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // ConfigSynonym is a fallback value for a config.
@@ -224,7 +224,11 @@ func (rs AlterConfigsResponses) On(name string, fn func(*AlterConfigsResponse) e
 //
 // This may return *ShardErrors. You may consider checking
 // ValidateAlterTopicConfigs before using this method.
-func (cl *Client) AlterTopicConfigs(ctx context.Context, configs []AlterConfig, topics ...string) (AlterConfigsResponses, error) {
+func (cl *Client) AlterTopicConfigs(
+	ctx context.Context,
+	configs []AlterConfig,
+	topics ...string,
+) (AlterConfigsResponses, error) {
 	return cl.alterConfigs(ctx, false, configs, kmsg.ConfigResourceTypeTopic, topics)
 }
 
@@ -233,7 +237,11 @@ func (cl *Client) AlterTopicConfigs(ctx context.Context, configs []AlterConfig, 
 //
 // This returns exactly what AlterTopicConfigs returns, but does not actually
 // alter configurations.
-func (cl *Client) ValidateAlterTopicConfigs(ctx context.Context, configs []AlterConfig, topics ...string) (AlterConfigsResponses, error) {
+func (cl *Client) ValidateAlterTopicConfigs(
+	ctx context.Context,
+	configs []AlterConfig,
+	topics ...string,
+) (AlterConfigsResponses, error) {
 	return cl.alterConfigs(ctx, true, configs, kmsg.ConfigResourceTypeTopic, topics)
 }
 
@@ -251,7 +259,11 @@ func (cl *Client) ValidateAlterTopicConfigs(ctx context.Context, configs []Alter
 //
 // This may return *ShardErrors. You may consider checking
 // ValidateAlterBrokerConfigs before using this method.
-func (cl *Client) AlterBrokerConfigs(ctx context.Context, configs []AlterConfig, brokers ...int32) (AlterConfigsResponses, error) {
+func (cl *Client) AlterBrokerConfigs(
+	ctx context.Context,
+	configs []AlterConfig,
+	brokers ...int32,
+) (AlterConfigsResponses, error) {
 	var names []string
 	if len(brokers) == 0 {
 		names = append(names, "")
@@ -267,7 +279,11 @@ func (cl *Client) AlterBrokerConfigs(ctx context.Context, configs []AlterConfig,
 //
 // This returns exactly what AlterBrokerConfigs returns, but does not actually
 // alter configurations.
-func (cl *Client) ValidateAlterBrokerConfigs(ctx context.Context, configs []AlterConfig, brokers ...int32) (AlterConfigsResponses, error) {
+func (cl *Client) ValidateAlterBrokerConfigs(
+	ctx context.Context,
+	configs []AlterConfig,
+	brokers ...int32,
+) (AlterConfigsResponses, error) {
 	var names []string
 	if len(brokers) == 0 {
 		names = append(names, "")
@@ -316,7 +332,8 @@ func (cl *Client) alterConfigs(
 	return rs, shardErrEach(req, shards, func(kr kmsg.Response) error {
 		resp := kr.(*kmsg.IncrementalAlterConfigsResponse)
 		for _, r := range resp.Resources {
-			rs = append(rs, AlterConfigsResponse{ // we are not storing in a map, no existence check possible
+			rs = append(rs, AlterConfigsResponse{
+				// we are not storing in a map, no existence check possible
 				Name:       r.ResourceName,
 				Err:        kerr.ErrorForCode(r.ErrorCode),
 				ErrMessage: unptrStr(r.ErrorMessage),
@@ -331,7 +348,11 @@ func (cl *Client) alterConfigs(
 //
 // This may return *ShardErrors. You may consider checking
 // ValidateAlterTopicConfigs before using this method.
-func (cl *Client) AlterTopicConfigsState(ctx context.Context, configs []AlterConfig, topics ...string) (AlterConfigsResponses, error) {
+func (cl *Client) AlterTopicConfigsState(
+	ctx context.Context,
+	configs []AlterConfig,
+	topics ...string,
+) (AlterConfigsResponses, error) {
 	return cl.alterConfigsState(ctx, false, configs, kmsg.ConfigResourceTypeTopic, topics)
 }
 
@@ -340,7 +361,11 @@ func (cl *Client) AlterTopicConfigsState(ctx context.Context, configs []AlterCon
 //
 // This returns exactly what AlterTopicConfigsState returns, but does not
 // actually alter configurations.
-func (cl *Client) ValidateAlterTopicConfigsState(ctx context.Context, configs []AlterConfig, topics ...string) (AlterConfigsResponses, error) {
+func (cl *Client) ValidateAlterTopicConfigsState(
+	ctx context.Context,
+	configs []AlterConfig,
+	topics ...string,
+) (AlterConfigsResponses, error) {
 	return cl.alterConfigsState(ctx, true, configs, kmsg.ConfigResourceTypeTopic, topics)
 }
 
@@ -351,7 +376,11 @@ func (cl *Client) ValidateAlterTopicConfigsState(ctx context.Context, configs []
 //
 // This may return *ShardErrors. You may consider checking
 // ValidateAlterBrokerConfigs before using this method.
-func (cl *Client) AlterBrokerConfigsState(ctx context.Context, configs []AlterConfig, brokers ...int32) (AlterConfigsResponses, error) {
+func (cl *Client) AlterBrokerConfigsState(
+	ctx context.Context,
+	configs []AlterConfig,
+	brokers ...int32,
+) (AlterConfigsResponses, error) {
 	var names []string
 	if len(brokers) == 0 {
 		names = append(names, "")
@@ -367,7 +396,11 @@ func (cl *Client) AlterBrokerConfigsState(ctx context.Context, configs []AlterCo
 //
 // This returns exactly what AlterBrokerConfigs returns, but does not actually
 // alter configurations.
-func (cl *Client) ValidateAlterBrokerConfigsState(ctx context.Context, configs []AlterConfig, brokers ...int32) (AlterConfigsResponses, error) {
+func (cl *Client) ValidateAlterBrokerConfigsState(
+	ctx context.Context,
+	configs []AlterConfig,
+	brokers ...int32,
+) (AlterConfigsResponses, error) {
 	var names []string
 	if len(brokers) == 0 {
 		names = append(names, "")
@@ -406,7 +439,8 @@ func (cl *Client) alterConfigsState(
 	return rs, shardErrEach(req, shards, func(kr kmsg.Response) error {
 		resp := kr.(*kmsg.AlterConfigsResponse)
 		for _, r := range resp.Resources {
-			rs = append(rs, AlterConfigsResponse{ // we are not storing in a map, no existence check possible
+			rs = append(rs, AlterConfigsResponse{
+				// we are not storing in a map, no existence check possible
 				Name:       r.ResourceName,
 				Err:        kerr.ErrorForCode(r.ErrorCode),
 				ErrMessage: unptrStr(r.ErrorMessage),

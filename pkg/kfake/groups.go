@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // TODO instance IDs
@@ -128,9 +128,9 @@ func generateMemberID(clientID string, instanceID *string) string {
 	return *instanceID + "-" + randStrUUID()
 }
 
-////////////
+// //////////
 // GROUPS //
-////////////
+// //////////
 
 func (gs *groups) newGroup(name string) *group {
 	return &group{
@@ -523,9 +523,9 @@ func (g *group) handleOffsetDelete(creq *clientReq) *kmsg.OffsetDeleteResponse {
 	return resp
 }
 
-////////////////////
+// //////////////////
 // GROUP HANDLING //
-////////////////////
+// //////////////////
 
 func (g *group) manage(detachNew func()) {
 	// On the first join only, we want to ensure that if the join is

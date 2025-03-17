@@ -3,8 +3,8 @@ package kfake
 import (
 	"strconv"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 func init() { regKey(32, 0, 4) }
@@ -26,7 +26,12 @@ func (c *Cluster) handleDescribeConfigs(b *broker, kreq kmsg.Request) (kmsg.Resp
 		return &resp.Resources[len(resp.Resources)-1]
 	}
 
-	rfn := func(r *kmsg.DescribeConfigsResponseResource) func(k string, v *string, src kmsg.ConfigSource, sensitive bool) {
+	rfn := func(r *kmsg.DescribeConfigsResponseResource) func(
+		k string,
+		v *string,
+		src kmsg.ConfigSource,
+		sensitive bool,
+	) {
 		nameIdxs := make(map[string]int)
 		return func(k string, v *string, src kmsg.ConfigSource, sensitive bool) {
 			rc := kmsg.NewDescribeConfigsResponseResourceConfig()
@@ -47,7 +52,8 @@ func (c *Cluster) handleDescribeConfigs(b *broker, kreq kmsg.Request) (kmsg.Resp
 				syn.Name = prior.Name
 				syn.Value = prior.Value
 				syn.Source = prior.Source
-				rc.ConfigSynonyms = append([]kmsg.DescribeConfigsResponseResourceConfigConfigSynonym{syn}, prior.ConfigSynonyms...)
+				rc.ConfigSynonyms = append([]kmsg.DescribeConfigsResponseResourceConfigConfigSynonym{syn},
+					prior.ConfigSynonyms...)
 				r.Configs[idx] = rc
 				return
 			}

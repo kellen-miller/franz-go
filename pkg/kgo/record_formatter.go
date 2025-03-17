@@ -16,12 +16,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/twmb/franz-go/pkg/kbin"
+	"github.com/kellen-miller/franz-go/pkg/kbin"
 )
 
-////////////
+// //////////
 // WRITER //
-////////////
+// //////////
 
 // RecordFormatter formats records.
 type RecordFormatter struct {
@@ -354,7 +354,8 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 				})
 			case '|':
 				f.fns = append(f.fns, func(b []byte, p *FetchPartition, _ *Record) []byte {
-					return writeP(b, p, func(b []byte, p *FetchPartition) []byte { return numfn(b, p.LastStableOffset) })
+					return writeP(b, p,
+						func(b []byte, p *FetchPartition) []byte { return numfn(b, p.LastStableOffset) })
 				})
 			case ']':
 				f.fns = append(f.fns, func(b []byte, p *FetchPartition, _ *Record) []byte {
@@ -460,7 +461,8 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 					})
 				})
 			case strings.HasPrefix(layout, "compression;"):
-				if err := num("compression;", func(r *Record) int64 { return int64(r.Attrs.CompressionType()) }); err != nil {
+				if err := num("compression;",
+					func(r *Record) int64 { return int64(r.Attrs.CompressionType()) }); err != nil {
 					return nil, err
 				}
 
@@ -472,7 +474,8 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 					})
 				})
 			case strings.HasPrefix(layout, "timestamp-type;"):
-				if err := num("timestamp-type;", func(r *Record) int64 { return int64(r.Attrs.TimestampType()) }); err != nil {
+				if err := num("timestamp-type;",
+					func(r *Record) int64 { return int64(r.Attrs.TimestampType()) }); err != nil {
 					return nil, err
 				}
 
@@ -487,7 +490,8 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 					})
 				})
 			case strings.HasPrefix(layout, "transactional-bit;"):
-				if err := num("transactional-bit;", func(r *Record) int64 { return bi64(r.Attrs.IsTransactional()) }); err != nil {
+				if err := num("transactional-bit;",
+					func(r *Record) int64 { return bi64(r.Attrs.IsTransactional()) }); err != nil {
 					return nil, err
 				}
 
@@ -560,7 +564,11 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 			handledBrace = isOpenBrace
 			if !handledBrace {
 				f.fns = append(f.fns, func(b []byte, _ *FetchPartition, r *Record) []byte {
-					return writeR(b, r, func(b []byte, r *Record) []byte { return strconv.AppendInt(b, r.Timestamp.UnixNano()/1e6, 10) })
+					return writeR(b, r,
+						func(b []byte, r *Record) []byte {
+							return strconv.AppendInt(b, r.Timestamp.UnixNano()/1e6,
+								10)
+						})
 				})
 				continue
 			}
@@ -576,7 +584,8 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 				}
 				layout = rem[1:]
 				f.fns = append(f.fns, func(b []byte, _ *FetchPartition, r *Record) []byte {
-					return writeR(b, r, func(b []byte, r *Record) []byte { return strftimeAppendFormat(b, tfmt, r.Timestamp.UTC()) })
+					return writeR(b, r,
+						func(b []byte, r *Record) []byte { return strftimeAppendFormat(b, tfmt, r.Timestamp.UTC()) })
 				})
 
 			case strings.HasPrefix(layout, "go"):
@@ -589,7 +598,8 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 				}
 				layout = rem[1:]
 				f.fns = append(f.fns, func(b []byte, _ *FetchPartition, r *Record) []byte {
-					return writeR(b, r, func(b []byte, r *Record) []byte { return r.Timestamp.UTC().AppendFormat(b, tfmt) })
+					return writeR(b, r,
+						func(b []byte, r *Record) []byte { return r.Timestamp.UTC().AppendFormat(b, tfmt) })
 				})
 
 			default:
@@ -600,7 +610,8 @@ func NewRecordFormatter(layout string) (*RecordFormatter, error) {
 				layout = layout[n:]
 
 				f.fns = append(f.fns, func(b []byte, _ *FetchPartition, r *Record) []byte {
-					return writeR(b, r, func(b []byte, r *Record) []byte { return numfn(b, r.Timestamp.UnixNano()/1e6) })
+					return writeR(b, r,
+						func(b []byte, r *Record) []byte { return numfn(b, r.Timestamp.UnixNano()/1e6) })
 				})
 			}
 		}
@@ -958,9 +969,9 @@ func writeNumBool(b []byte, n int64) []byte {
 	return append(b, "true"...)
 }
 
-////////////
+// //////////
 // READER //
-////////////
+// //////////
 
 // RecordReader reads records from an io.Reader.
 type RecordReader struct {
@@ -1218,7 +1229,8 @@ func (r *RecordReader) parseReadLayout(layout string) error {
 				return fmt.Errorf("%%%s is doubly specified", string(escaped))
 			}
 			if bits.has(bit >> 1) {
-				return fmt.Errorf("size specification %%%s cannot come after value specification %%%s", string(escaped), strings.ToLower(string(escaped)))
+				return fmt.Errorf("size specification %%%s cannot come after value specification %%%s", string(escaped),
+					strings.ToLower(string(escaped)))
 			}
 			bits.set(bit)
 			fn, n, err := r.parseReadSize("ascii", dst, false)
@@ -1353,17 +1365,19 @@ func (r *RecordReader) parseReadLayout(layout string) error {
 				inner = func(b []byte, r *Record) { r.Value = dupslice(b) }
 			}
 
-			fn := readParse{parse: func(b []byte, r *Record) error {
-				if decodeFn != nil {
-					dec, err := decodeFn(b)
-					if err != nil {
-						return err
+			fn := readParse{
+				parse: func(b []byte, r *Record) error {
+					if decodeFn != nil {
+						dec, err := decodeFn(b)
+						if err != nil {
+							return err
+						}
+						b = dec
 					}
-					b = dec
-				}
-				inner(b, r)
-				return nil
-			}}
+					inner(b, r)
+					return nil
+				},
+			}
 			bit.set(bit)
 			if bits.has(bitSize) {
 				if re != nil {
@@ -1422,19 +1436,23 @@ func (r *RecordReader) parseReadLayout(layout string) error {
 			// To parse headers, we save the inner reader's parsing
 			// function stash the current record's key/value before
 			// parsing, and then capture the key/value as a header.
-			r.fns = append(r.fns, readParse{read: readKind{handoff: func(r *RecordReader, rec *Record) error {
-				k, v := rec.Key, rec.Value
-				defer func() { rec.Key, rec.Value = k, v }()
-				inr.r = r.r
-				for i := uint64(0); i < *headersNum; i++ {
-					rec.Key, rec.Value = nil, nil
-					if err := inr.next(rec); err != nil {
-						return err
-					}
-					rec.Headers = append(rec.Headers, RecordHeader{Key: string(rec.Key), Value: rec.Value})
-				}
-				return nil
-			}}})
+			r.fns = append(r.fns, readParse{
+				read: readKind{
+					handoff: func(r *RecordReader, rec *Record) error {
+						k, v := rec.Key, rec.Value
+						defer func() { rec.Key, rec.Value = k, v }()
+						inr.r = r.r
+						for i := uint64(0); i < *headersNum; i++ {
+							rec.Key, rec.Value = nil, nil
+							if err := inr.next(rec); err != nil {
+								return err
+							}
+							rec.Headers = append(rec.Headers, RecordHeader{Key: string(rec.Key), Value: rec.Value})
+						}
+						return nil
+					},
+				},
+			})
 		}
 
 		if isOpenBrace && !handledBrace {
@@ -1493,12 +1511,14 @@ func (*RecordReader) parseReadSize(layout string, dst *uint64, needBrace bool) (
 
 	case "ascii", "number":
 		return readParse{
-			readKind{condition: func(b byte) int8 {
-				if b < '0' || b > '9' {
-					return -1
-				}
-				return 2 // ignore EOF if we hit it after this
-			}},
+			readKind{
+				condition: func(b byte) int8 {
+					if b < '0' || b > '9' {
+						return -1
+					}
+					return 2 // ignore EOF if we hit it after this
+				},
+			},
 			func(b []byte, _ *Record) (err error) {
 				*dst, err = strconv.ParseUint(kbin.UnsafeString(b), 10, 64)
 				return err
@@ -1593,46 +1613,48 @@ func (*RecordReader) parseReadSize(layout string, dst *uint64, needBrace bool) (
 		var state uint8
 		var last byte
 		return readParse{
-			readKind{condition: func(b byte) (done int8) {
-				defer func() {
-					if done <= 0 {
-						state = stateUnknown
-						last = 0
-					}
-				}()
+			readKind{
+				condition: func(b byte) (done int8) {
+					defer func() {
+						if done <= 0 {
+							state = stateUnknown
+							last = 0
+						}
+					}()
 
-				switch state {
-				default: // stateUnknown
-					if b == 't' {
-						state = stateTrue
-						last = b
-						return 1
-					} else if b == 'f' {
-						state = stateFalse
-						last = b
-						return 1
-					}
-					return -1
+					switch state {
+					default: // stateUnknown
+						if b == 't' {
+							state = stateTrue
+							last = b
+							return 1
+						} else if b == 'f' {
+							state = stateFalse
+							last = b
+							return 1
+						}
+						return -1
 
-				case stateTrue:
-					if last == 't' && b == 'r' || last == 'r' && b == 'u' {
-						last = b
-						return 1
-					} else if last == 'u' && b == 'e' {
-						return 0
-					}
-					return -1
+					case stateTrue:
+						if last == 't' && b == 'r' || last == 'r' && b == 'u' {
+							last = b
+							return 1
+						} else if last == 'u' && b == 'e' {
+							return 0
+						}
+						return -1
 
-				case stateFalse:
-					if last == 'f' && b == 'a' || last == 'a' && b == 'l' || last == 'l' && b == 's' {
-						last = b
-						return 1
-					} else if last == 's' && b == 'e' {
-						return 0
+					case stateFalse:
+						if last == 'f' && b == 'a' || last == 'a' && b == 'l' || last == 'l' && b == 's' {
+							last = b
+							return 1
+						} else if last == 's' && b == 'e' {
+							return 0
+						}
+						return -1
 					}
-					return -1
-				}
-			}},
+				},
+			},
 			func(b []byte, _ *Record) error {
 				switch string(b) {
 				case "true":
@@ -2213,9 +2235,9 @@ func (r *jsonReader) oneOrTwo() int8 {
 	return 2
 }
 
-////////////
+// //////////
 // COMMON //
-////////////
+// //////////
 
 func parseLayoutSlash(layout string) (byte, int, error) {
 	if len(layout) == 0 {

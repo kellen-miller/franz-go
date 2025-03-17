@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // AlterReplicaLogDirsReq is the input for a request to alter replica log
@@ -139,7 +139,11 @@ func (a AlterReplicaLogDirsResponse) Less(other AlterReplicaLogDirsResponse) boo
 	return a.Partition < other.Partition
 }
 
-func newAlterLogDirsResp(node int32, req AlterReplicaLogDirsReq, resp *kmsg.AlterReplicaLogDirsResponse) AlterReplicaLogDirsResponses {
+func newAlterLogDirsResp(
+	node int32,
+	req AlterReplicaLogDirsReq,
+	resp *kmsg.AlterReplicaLogDirsResponse,
+) AlterReplicaLogDirsResponses {
 	a := make(AlterReplicaLogDirsResponses)
 	for _, kt := range resp.Topics {
 		ps := make(map[int32]AlterReplicaLogDirsResponse)
@@ -162,7 +166,10 @@ func newAlterLogDirsResp(node int32, req AlterReplicaLogDirsReq, resp *kmsg.Alte
 // moves all replicas on any broker.
 //
 // This may return *ShardErrors.
-func (cl *Client) AlterAllReplicaLogDirs(ctx context.Context, alter AlterReplicaLogDirsReq) (AlterAllReplicaLogDirsResponses, error) {
+func (cl *Client) AlterAllReplicaLogDirs(
+	ctx context.Context,
+	alter AlterReplicaLogDirsReq,
+) (AlterAllReplicaLogDirsResponses, error) {
 	if len(alter) == 0 {
 		return make(AlterAllReplicaLogDirsResponses), nil
 	}
@@ -178,7 +185,11 @@ func (cl *Client) AlterAllReplicaLogDirs(ctx context.Context, alter AlterReplica
 
 // AlterBrokerReplicaLogDirs alters the log directories for the input topic on the
 // given broker, moving each partition to the requested directory.
-func (cl *Client) AlterBrokerReplicaLogDirs(ctx context.Context, broker int32, alter AlterReplicaLogDirsReq) (AlterReplicaLogDirsResponses, error) {
+func (cl *Client) AlterBrokerReplicaLogDirs(
+	ctx context.Context,
+	broker int32,
+	alter AlterReplicaLogDirsReq,
+) (AlterReplicaLogDirsResponses, error) {
 	if len(alter) == 0 {
 		return make(AlterReplicaLogDirsResponses), nil
 	}

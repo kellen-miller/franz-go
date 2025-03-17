@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // AuthError can be returned from requests for resources that you are not
@@ -70,7 +70,11 @@ func shardErrEach(req kmsg.Request, shards []kgo.ResponseShard, fn func(kmsg.Res
 	})
 }
 
-func shardErrEachBroker(req kmsg.Request, shards []kgo.ResponseShard, fn func(BrokerDetail, kmsg.Response) error) error {
+func shardErrEachBroker(
+	req kmsg.Request,
+	shards []kgo.ResponseShard,
+	fn func(BrokerDetail, kmsg.Response) error,
+) error {
 	se := ShardErrors{
 		Name: kmsg.NameForKey(req.Key()),
 	}

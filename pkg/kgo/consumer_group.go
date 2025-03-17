@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 type groupConsumer struct {
@@ -101,9 +101,9 @@ type groupConsumer struct {
 	// IllegalGeneration errors while cooperative consuming.
 	noCommitDuringJoinAndSync sync.RWMutex
 
-	//////////////
+	// ////////////
 	// mu block //
-	//////////////
+	// ////////////
 	mu sync.Mutex
 
 	// using is updated when finding new assignments, we always add to this
@@ -442,7 +442,8 @@ func (g *groupConsumer) manage() {
 		// unable to commit.
 		{
 			g.c.mu.Lock()
-			g.c.assignPartitions(nil, assignInvalidateAll, nil, "clearing assignment at end of group management session")
+			g.c.assignPartitions(nil, assignInvalidateAll, nil,
+				"clearing assignment at end of group management session")
 			g.mu.Lock()     // before allowing poll to touch uncommitted, lock the group
 			g.c.mu.Unlock() // now part of poll can continue
 			g.uncommitted = nil
@@ -623,16 +624,21 @@ func (g *groupConsumer) revoke(stage revokeStage, lost map[string][]int32, leavi
 		// current partitions as we will be revoking them.
 		g.c.mu.Lock()
 		if leaving {
-			g.c.assignPartitions(nil, assignInvalidateAll, nil, "revoking all assignments because we are leaving the group")
+			g.c.assignPartitions(nil, assignInvalidateAll, nil,
+				"revoking all assignments because we are leaving the group")
 		} else {
-			g.c.assignPartitions(nil, assignInvalidateAll, nil, "revoking all assignments because we are not cooperative")
+			g.c.assignPartitions(nil, assignInvalidateAll, nil,
+				"revoking all assignments because we are not cooperative")
 		}
 		g.c.mu.Unlock()
 
 		if !g.cooperative.Load() {
-			g.cfg.logger.Log(LogLevelInfo, "eager consumer revoking prior assigned partitions", "group", g.cfg.group, "revoking", g.nowAssigned.read())
+			g.cfg.logger.Log(LogLevelInfo, "eager consumer revoking prior assigned partitions", "group", g.cfg.group,
+				"revoking", g.nowAssigned.read())
 		} else {
-			g.cfg.logger.Log(LogLevelInfo, "cooperative consumer revoking prior assigned partitions because leaving group", "group", g.cfg.group, "revoking", g.nowAssigned.read())
+			g.cfg.logger.Log(LogLevelInfo,
+				"cooperative consumer revoking prior assigned partitions because leaving group", "group", g.cfg.group,
+				"revoking", g.nowAssigned.read())
 		}
 		if g.cfg.onRevoked != nil {
 			g.cfg.onRevoked(g.cl.ctx, g.cl, g.nowAssigned.read())
@@ -702,15 +708,19 @@ func (g *groupConsumer) revoke(stage revokeStage, lost map[string][]int32, leavi
 		// logical race of allowing fetches for revoked partitions
 		// after a revoke but before an invalidation.
 		g.c.mu.Lock()
-		g.c.assignPartitions(lostOffsets, assignInvalidateMatching, g.tps, "revoking assignments from cooperative consuming")
+		g.c.assignPartitions(lostOffsets, assignInvalidateMatching, g.tps,
+			"revoking assignments from cooperative consuming")
 		g.c.mu.Unlock()
 	}
 
 	if len(lost) > 0 || stage == revokeThisSession {
 		if len(lost) == 0 {
-			g.cfg.logger.Log(LogLevelInfo, "cooperative consumer calling onRevoke at the end of a session even though no partitions were lost", "group", g.cfg.group)
+			g.cfg.logger.Log(LogLevelInfo,
+				"cooperative consumer calling onRevoke at the end of a session even though no partitions were lost",
+				"group", g.cfg.group)
 		} else {
-			g.cfg.logger.Log(LogLevelInfo, "cooperative consumer calling onRevoke", "group", g.cfg.group, "lost", lost, "stage", stage)
+			g.cfg.logger.Log(LogLevelInfo, "cooperative consumer calling onRevoke", "group", g.cfg.group, "lost", lost,
+				"stage", stage)
 		}
 		if g.cfg.onRevoked != nil {
 			g.cfg.onRevoked(g.cl.ctx, g.cl, lost)
@@ -836,7 +846,8 @@ func (g *groupConsumer) setupAssignedAndHeartbeat() (string, error) {
 	added, lost := g.diffAssigned()
 	g.lastAssigned = g.nowAssigned.clone() // now that we are done with our last assignment, update it per the new assignment
 
-	g.cfg.logger.Log(LogLevelInfo, "new group session begun", "group", g.cfg.group, "added", mtps(added), "lost", mtps(lost))
+	g.cfg.logger.Log(LogLevelInfo, "new group session begun", "group", g.cfg.group, "added", mtps(added), "lost",
+		mtps(lost))
 	s.prerevoke(g, lost) // for cooperative consumers
 
 	// Since we have joined the group, we immediately begin heartbeating.
@@ -1004,7 +1015,8 @@ func (g *groupConsumer) heartbeat(fetchErrCh <-chan error, s *assignRevokeSessio
 		if lastErr == nil {
 			g.cfg.logger.Log(LogLevelInfo, "heartbeat errored", "group", g.cfg.group, "err", err)
 		} else {
-			g.cfg.logger.Log(LogLevelInfo, "heartbeat errored again while waiting for user revoke to finish", "group", g.cfg.group, "err", err)
+			g.cfg.logger.Log(LogLevelInfo, "heartbeat errored again while waiting for user revoke to finish", "group",
+				g.cfg.group, "err", err)
 		}
 
 		// Since we errored, we must revoke.
@@ -1170,7 +1182,8 @@ start:
 		synced   = make(chan struct{})
 	)
 
-	g.cfg.logger.Log(LogLevelInfo, "syncing", "group", g.cfg.group, "protocol_type", g.cfg.protocol, "protocol", protocol)
+	g.cfg.logger.Log(LogLevelInfo, "syncing", "group", g.cfg.group, "protocol_type", g.cfg.protocol, "protocol",
+		protocol)
 	go func() {
 		defer close(synced)
 		syncResp, err = syncReq.RequestWith(g.cl.ctx, g.cl)
@@ -1222,11 +1235,13 @@ func (g *groupConsumer) handleJoinResp(resp *kmsg.JoinGroupResponse) (restart bo
 		switch err {
 		case kerr.MemberIDRequired:
 			g.memberGen.storeMember(resp.MemberID) // KIP-394
-			g.cfg.logger.Log(LogLevelInfo, "join returned MemberIDRequired, rejoining with response's MemberID", "group", g.cfg.group, "member_id", resp.MemberID)
+			g.cfg.logger.Log(LogLevelInfo, "join returned MemberIDRequired, rejoining with response's MemberID",
+				"group", g.cfg.group, "member_id", resp.MemberID)
 			return true, "", nil, nil
 		case kerr.UnknownMemberID:
 			g.memberGen.storeMember("")
-			g.cfg.logger.Log(LogLevelInfo, "join returned UnknownMemberID, rejoining without a member id", "group", g.cfg.group)
+			g.cfg.logger.Log(LogLevelInfo, "join returned UnknownMemberID, rejoining without a member id", "group",
+				g.cfg.group)
 			return true, "", nil, nil
 		}
 		return // Request retries as necessary, so this must be a failure
@@ -1241,7 +1256,8 @@ func (g *groupConsumer) handleJoinResp(resp *kmsg.JoinGroupResponse) (restart bo
 		if protocol == balancer.ProtocolName() {
 			cooperative := balancer.IsCooperative()
 			if !cooperative && g.cooperative.Load() {
-				g.cfg.logger.Log(LogLevelWarn, "downgrading from cooperative group to eager group, this is not supported per KIP-429!")
+				g.cfg.logger.Log(LogLevelWarn,
+					"downgrading from cooperative group to eager group, this is not supported per KIP-429!")
 			}
 			g.cooperative.Store(cooperative)
 			break
@@ -1274,7 +1290,8 @@ func (g *groupConsumer) handleJoinResp(resp *kmsg.JoinGroupResponse) (restart bo
 	// around this limitation for not well known balancers because they may
 	// do so weird things we cannot control nor reason about.
 	leader := resp.LeaderID == resp.MemberID
-	leaderNoPlan := !leader && resp.Version <= 8 && g.cfg.instanceID != nil && strings.HasPrefix(resp.LeaderID, *g.cfg.instanceID+"-")
+	leaderNoPlan := !leader && resp.Version <= 8 && g.cfg.instanceID != nil && strings.HasPrefix(resp.LeaderID,
+		*g.cfg.instanceID+"-")
 	if leader {
 		g.leader.Store(true)
 		g.cfg.logger.Log(LogLevelInfo, "joined, balancing group",
@@ -1539,7 +1556,10 @@ func (g *groupConsumer) adjustCooperativeFetchOffsets(added, lost map[string][]i
 
 // fetchOffsets is issued once we join a group to see what the prior commits
 // were for the partitions we were assigned.
-func (g *groupConsumer) fetchOffsets(ctx context.Context, added map[string][]int32) (rerr error) { // we must use "rerr"! see introducing commit
+func (g *groupConsumer) fetchOffsets(
+	ctx context.Context,
+	added map[string][]int32,
+) (rerr error) { // we must use "rerr"! see introducing commit
 	// If we fetch successfully, we can clear the cross-group-cycle
 	// fetching tracking.
 	defer func() {
@@ -1577,7 +1597,8 @@ start:
 		return ctx.Err()
 	}
 	if err != nil {
-		g.cfg.logger.Log(LogLevelError, "fetch offsets failed with non-retryable error", "group", g.cfg.group, "err", err)
+		g.cfg.logger.Log(LogLevelError, "fetch offsets failed with non-retryable error", "group", g.cfg.group, "err",
+			err)
 		return err
 	}
 
@@ -1596,7 +1617,8 @@ start:
 				// pending transaction that should be committing soon.
 				// We sleep for 1s and retry fetching offsets.
 				if errors.Is(err, kerr.UnstableOffsetCommit) {
-					g.cfg.logger.Log(LogLevelInfo, "fetch offsets failed with UnstableOffsetCommit, waiting 1s and retrying",
+					g.cfg.logger.Log(LogLevelInfo,
+						"fetch offsets failed with UnstableOffsetCommit, waiting 1s and retrying",
 						"group", g.cfg.group,
 						"topic", rTopic.Topic,
 						"partition", rPartition.Partition,
@@ -1633,7 +1655,9 @@ start:
 	for fetchedTopic := range offsets {
 		if !groupTopics.hasTopic(fetchedTopic) {
 			delete(offsets, fetchedTopic)
-			g.cfg.logger.Log(LogLevelWarn, "member was assigned topic that we did not ask for in ConsumeTopics! skipping assigning this topic!", "group", g.cfg.group, "topic", fetchedTopic)
+			g.cfg.logger.Log(LogLevelWarn,
+				"member was assigned topic that we did not ask for in ConsumeTopics! skipping assigning this topic!",
+				"group", g.cfg.group, "topic", fetchedTopic)
 		}
 	}
 
@@ -1662,7 +1686,8 @@ start:
 
 	// Eager: we already invalidated everything; nothing to re-invalidate.
 	// Cooperative: assign without invalidating what we are consuming.
-	g.c.assignPartitions(offsets, assignWithoutInvalidating, g.tps, fmt.Sprintf("newly fetched offsets for group %s", g.cfg.group))
+	g.c.assignPartitions(offsets, assignWithoutInvalidating, g.tps,
+		fmt.Sprintf("newly fetched offsets for group %s", g.cfg.group))
 
 	// We need to update the uncommitted map so that SetOffsets(Committed)
 	// does not rewind before the committed offsets we just fetched.
@@ -1865,9 +1890,11 @@ func (g *groupConsumer) updateUncommitted(fetches Fetches) {
 
 				if debug {
 					if setHead {
-						fmt.Fprintf(&b, "%d{%d=>%d r%d}, ", partition.Partition, prior.head.Offset, set.Offset, len(partition.Records))
+						fmt.Fprintf(&b, "%d{%d=>%d r%d}, ", partition.Partition, prior.head.Offset, set.Offset,
+							len(partition.Records))
 					} else {
-						fmt.Fprintf(&b, "%d{%d=>%d=>%d r%d}, ", partition.Partition, prior.head.Offset, prior.dirty.Offset, set.Offset, len(partition.Records))
+						fmt.Fprintf(&b, "%d{%d=>%d=>%d r%d}, ", partition.Partition, prior.head.Offset,
+							prior.dirty.Offset, set.Offset, len(partition.Records))
 					}
 				}
 
@@ -1944,11 +1971,14 @@ func (g *groupConsumer) updateCommitted(
 		return
 	}
 	if g.uncommitted == nil {
-		g.cfg.logger.Log(LogLevelWarn, "received an OffsetCommitResponse after our group session has ended, unable to handle this (were we kicked from the group?)")
+		g.cfg.logger.Log(LogLevelWarn,
+			"received an OffsetCommitResponse after our group session has ended, unable to handle this (were we kicked from the group?)")
 		return
 	}
 	if len(req.Topics) != len(resp.Topics) { // bad kafka
-		g.cfg.logger.Log(LogLevelError, fmt.Sprintf("broker replied to our OffsetCommitRequest incorrectly! Num topics in request: %d, in reply: %d, we cannot handle this!", len(req.Topics), len(resp.Topics)), "group", g.cfg.group)
+		g.cfg.logger.Log(LogLevelError,
+			fmt.Sprintf("broker replied to our OffsetCommitRequest incorrectly! Num topics in request: %d, in reply: %d, we cannot handle this!",
+				len(req.Topics), len(resp.Topics)), "group", g.cfg.group)
 		return
 	}
 
@@ -1969,7 +1999,10 @@ func (g *groupConsumer) updateCommitted(
 		if topic == nil || // just in case
 			reqTopic.Topic != respTopic.Topic || // bad kafka
 			len(reqTopic.Partitions) != len(respTopic.Partitions) { // same
-			g.cfg.logger.Log(LogLevelError, fmt.Sprintf("broker replied to our OffsetCommitRequest incorrectly! Topic at request index %d: %s, reply at index: %s; num partitions on request topic: %d, in reply: %d, we cannot handle this!", i, reqTopic.Topic, respTopic.Topic, len(reqTopic.Partitions), len(respTopic.Partitions)), "group", g.cfg.group)
+			g.cfg.logger.Log(LogLevelError,
+				fmt.Sprintf("broker replied to our OffsetCommitRequest incorrectly! Topic at request index %d: %s, reply at index: %s; num partitions on request topic: %d, in reply: %d, we cannot handle this!",
+					i, reqTopic.Topic, respTopic.Topic, len(reqTopic.Partitions), len(respTopic.Partitions)), "group",
+				g.cfg.group)
 			continue
 		}
 
@@ -1991,7 +2024,9 @@ func (g *groupConsumer) updateCommitted(
 				continue
 			}
 			if reqPart.Partition != respPart.Partition { // bad kafka
-				g.cfg.logger.Log(LogLevelError, fmt.Sprintf("broker replied to our OffsetCommitRequest incorrectly! Topic %s partition %d != resp partition %d", reqTopic.Topic, reqPart.Partition, respPart.Partition), "group", g.cfg.group)
+				g.cfg.logger.Log(LogLevelError,
+					fmt.Sprintf("broker replied to our OffsetCommitRequest incorrectly! Topic %s partition %d != resp partition %d",
+						reqTopic.Topic, reqPart.Partition, respPart.Partition), "group", g.cfg.group)
 				continue
 			}
 			if respPart.ErrorCode != 0 {
@@ -2073,7 +2108,12 @@ func (g *groupConsumer) updateCommitted(
 	}
 }
 
-func (g *groupConsumer) defaultCommitCallback(_ *Client, _ *kmsg.OffsetCommitRequest, resp *kmsg.OffsetCommitResponse, err error) {
+func (g *groupConsumer) defaultCommitCallback(
+	_ *Client,
+	_ *kmsg.OffsetCommitRequest,
+	resp *kmsg.OffsetCommitResponse,
+	err error,
+) {
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			g.cfg.logger.Log(LogLevelError, "default commit failed", "group", g.cfg.group, "err", err)
@@ -2124,10 +2164,11 @@ func (g *groupConsumer) loopCommit() {
 				g.noCommitDuringJoinAndSync.RUnlock()
 			} else {
 				g.cfg.logger.Log(LogLevelDebug, "autocommitting", "group", g.cfg.group)
-				g.commit(g.ctx, uncommitted, func(cl *Client, req *kmsg.OffsetCommitRequest, resp *kmsg.OffsetCommitResponse, err error) {
-					g.noCommitDuringJoinAndSync.RUnlock()
-					g.cfg.commitCallback(cl, req, resp, err)
-				})
+				g.commit(g.ctx, uncommitted,
+					func(cl *Client, req *kmsg.OffsetCommitRequest, resp *kmsg.OffsetCommitResponse, err error) {
+						g.noCommitDuringJoinAndSync.RUnlock()
+						g.cfg.commitCallback(cl, req, resp, err)
+					})
 			}
 		} else {
 			g.noCommitDuringJoinAndSync.RUnlock()
@@ -2354,21 +2395,22 @@ func (cl *Client) CommitRecords(ctx context.Context, rs ...*Record) error {
 	// Our client retries an OffsetCommitRequest as necessary if the first
 	// response partition has a retryable group error (group coordinator
 	// loading, etc), so any partition error is fatal.
-	cl.CommitOffsetsSync(ctx, offsets, func(_ *Client, _ *kmsg.OffsetCommitRequest, resp *kmsg.OffsetCommitResponse, err error) {
-		if err != nil {
-			rerr = err
-			return
-		}
+	cl.CommitOffsetsSync(ctx, offsets,
+		func(_ *Client, _ *kmsg.OffsetCommitRequest, resp *kmsg.OffsetCommitResponse, err error) {
+			if err != nil {
+				rerr = err
+				return
+			}
 
-		for _, topic := range resp.Topics {
-			for _, partition := range topic.Partitions {
-				if err := kerr.ErrorForCode(partition.ErrorCode); err != nil {
-					rerr = err
-					return
+			for _, topic := range resp.Topics {
+				for _, partition := range topic.Partitions {
+					if err := kerr.ErrorForCode(partition.ErrorCode); err != nil {
+						rerr = err
+						return
+					}
 				}
 			}
-		}
-	})
+		})
 
 	return rerr
 }
@@ -2499,21 +2541,22 @@ func (cl *Client) CommitMarkedOffsets(ctx context.Context) error {
 
 func (cl *Client) commitOffsets(ctx context.Context, offsets map[string]map[int32]EpochOffset) error {
 	var rerr error
-	cl.CommitOffsetsSync(ctx, offsets, func(_ *Client, _ *kmsg.OffsetCommitRequest, resp *kmsg.OffsetCommitResponse, err error) {
-		if err != nil {
-			rerr = err
-			return
-		}
+	cl.CommitOffsetsSync(ctx, offsets,
+		func(_ *Client, _ *kmsg.OffsetCommitRequest, resp *kmsg.OffsetCommitResponse, err error) {
+			if err != nil {
+				rerr = err
+				return
+			}
 
-		for _, topic := range resp.Topics {
-			for _, partition := range topic.Partitions {
-				if err := kerr.ErrorForCode(partition.ErrorCode); err != nil {
-					rerr = err
-					return
+			for _, topic := range resp.Topics {
+				for _, partition := range topic.Partitions {
+					if err := kerr.ErrorForCode(partition.ErrorCode); err != nil {
+						rerr = err
+						return
+					}
 				}
 			}
-		}
-	})
+		})
 	return rerr
 }
 
@@ -2885,5 +2928,6 @@ func (r *reNews) log(cfg *cfg) {
 	}
 	added := strings.Join(addeds, " ")
 	sort.Strings(r.skipped)
-	cfg.logger.Log(LogLevelInfo, "consumer regular expressions evaluated on new topics", "added", added, "evaluated_and_skipped", r.skipped)
+	cfg.logger.Log(LogLevelInfo, "consumer regular expressions evaluated on new topics", "added", added,
+		"evaluated_and_skipped", r.skipped)
 }

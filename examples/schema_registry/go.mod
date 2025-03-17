@@ -6,8 +6,8 @@ toolchain go1.23.3
 
 require (
 	github.com/hamba/avro/v2 v2.27.0
-	github.com/twmb/franz-go v1.18.0
-	github.com/twmb/franz-go/pkg/sr v1.2.0
+	github.com/kellen-miller/franz-go v1.18.0
+	github.com/kellen-miller/franz-go/pkg/sr v1.2.0
 )
 
 require (
@@ -17,5 +17,5 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
-	github.com/twmb/franz-go/pkg/kmsg v1.9.0 // indirect
+	github.com/kellen-miller/franz-go/pkg/kmsg v1.9.0 // indirect
 )

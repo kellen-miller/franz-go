@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kbin"
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kbin"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 type readerFrom interface {
@@ -844,7 +844,8 @@ func (s *source) fetch(consumerSession *consumerSession, doneFetch chan<- struct
 		s.session.reset()
 		didBackoff = true
 
-		s.cl.triggerUpdateMetadata(false, fmt.Sprintf("opportunistic load during source backoff: %v", why)) // as good a time as any
+		s.cl.triggerUpdateMetadata(false,
+			fmt.Sprintf("opportunistic load during source backoff: %v", why)) // as good a time as any
 		s.consecutiveFailures++
 		after := time.NewTimer(s.cl.cfg.retryBackoff(s.consecutiveFailures))
 		defer after.Stop()
@@ -943,10 +944,14 @@ func (s *source) fetch(consumerSession *consumerSession, doneFetch chan<- struct
 			// If the epoch was zero, the broker did not even
 			// establish a session for us (and thus is maxed on
 			// sessions). We stop trying.
-			s.cl.cfg.logger.Log(LogLevelInfo, "session failed with SessionIDNotFound while trying to establish a session; broker likely maxed on sessions; continuing on without using sessions", "broker", logID(s.nodeID))
+			s.cl.cfg.logger.Log(LogLevelInfo,
+				"session failed with SessionIDNotFound while trying to establish a session; broker likely maxed on sessions; continuing on without using sessions",
+				"broker", logID(s.nodeID))
 			s.session.kill()
 		} else {
-			s.cl.cfg.logger.Log(LogLevelInfo, "received SessionIDNotFound from our in use session, our session was likely evicted; resetting session", "broker", logID(s.nodeID))
+			s.cl.cfg.logger.Log(LogLevelInfo,
+				"received SessionIDNotFound from our in use session, our session was likely evicted; resetting session",
+				"broker", logID(s.nodeID))
 			s.session.reset()
 		}
 		return
@@ -956,7 +961,8 @@ func (s *source) fetch(consumerSession *consumerSession, doneFetch chan<- struct
 		return
 
 	case kerr.FetchSessionTopicIDError, kerr.InconsistentTopicID:
-		s.cl.cfg.logger.Log(LogLevelInfo, "topic id issues, resetting session and updating metadata", "broker", logID(s.nodeID), "err", err)
+		s.cl.cfg.logger.Log(LogLevelInfo, "topic id issues, resetting session and updating metadata", "broker",
+			logID(s.nodeID), "err", err)
 		s.session.reset()
 		s.cl.triggerUpdateMetadataNow("topic id issues")
 		return
@@ -1191,7 +1197,8 @@ func (s *source) handleReqResp(br *broker, req *fetchRequest, resp *kmsg.FetchRe
 							Offset:  NewOffset().AfterMilli(partOffset.from.lastConsumedTime.UnixMilli()),
 						})
 						if log {
-							s.cl.cfg.logger.Log(LogLevelWarn, "received OFFSET_OUT_OF_RANGE, resetting to the nearest offset; either you were consuming too slowly and the broker has deleted the segment you were in the middle of consuming, or the broker has lost data and has not yet transferred leadership",
+							s.cl.cfg.logger.Log(LogLevelWarn,
+								"received OFFSET_OUT_OF_RANGE, resetting to the nearest offset; either you were consuming too slowly and the broker has deleted the segment you were in the middle of consuming, or the broker has lost data and has not yet transferred leadership",
 								"broker", logID(s.nodeID),
 								"topic", topic,
 								"partition", partition,
@@ -1204,7 +1211,8 @@ func (s *source) handleReqResp(br *broker, req *fetchRequest, resp *kmsg.FetchRe
 							Offset:  s.cl.cfg.resetOffset,
 						})
 						if log {
-							s.cl.cfg.logger.Log(LogLevelInfo, "received OFFSET_OUT_OF_RANGE on the first fetch, resetting to the configured ConsumeResetOffset",
+							s.cl.cfg.logger.Log(LogLevelInfo,
+								"received OFFSET_OUT_OF_RANGE on the first fetch, resetting to the configured ConsumeResetOffset",
 								"broker", logID(s.nodeID),
 								"topic", topic,
 								"partition", partition,
@@ -1293,7 +1301,12 @@ func (s *source) handleReqResp(br *broker, req *fetchRequest, resp *kmsg.FetchRe
 
 // processRespPartition processes all records in all potentially compressed
 // batches (or message sets).
-func (o *cursorOffsetNext) processRespPartition(br *broker, rp *kmsg.FetchResponseTopicPartition, decompressor *decompressor, hooks hooks) FetchPartition {
+func (o *cursorOffsetNext) processRespPartition(
+	br *broker,
+	rp *kmsg.FetchResponseTopicPartition,
+	decompressor *decompressor,
+	hooks hooks,
+) FetchPartition {
 	fp := FetchPartition{
 		Partition:        rp.Partition,
 		Err:              kerr.ErrorForCode(rp.ErrorCode),
@@ -1396,7 +1409,8 @@ func (o *cursorOffsetNext) processRespPartition(br *broker, rp *kmsg.FetchRespon
 			r = rb
 
 		default:
-			fp.Err = fmt.Errorf("unknown magic %d; message offset is %d and length is %d, skipping and setting to next offset", magic, offset, length)
+			fp.Err = fmt.Errorf("unknown magic %d; message offset is %d and length is %d, skipping and setting to next offset",
+				magic, offset, length)
 			if next := offset + 1; next > o.offset {
 				o.offset = next
 			}
@@ -1492,9 +1506,9 @@ func (a aborter) trackAbortedPID(producerID int64) {
 	}
 }
 
-//////////////////////////////////////
+// ////////////////////////////////////
 // processing records to fetch part //
-//////////////////////////////////////
+// ////////////////////////////////////
 
 // readRawRecords reads n records from in and returns them, returning early if
 // there were partial records.
@@ -1803,9 +1817,9 @@ func (o *cursorOffsetNext) maybeKeepRecord(fp *FetchPartition, record *Record, a
 	o.lastConsumedTime = record.Timestamp
 }
 
-///////////////////////////////
+// /////////////////////////////
 // kmsg.Record to kgo.Record //
-///////////////////////////////
+// /////////////////////////////
 
 func timeFromMillis(millis int64) time.Time {
 	return time.Unix(0, millis*1e6)
@@ -1895,9 +1909,9 @@ func v1MessageToRecord(
 	}
 }
 
-//////////////////
+// ////////////////
 // fetchRequest //
-//////////////////
+// ////////////////
 
 type fetchRequest struct {
 	version      int16
@@ -1986,7 +2000,11 @@ func (f *fetchRequest) addCursor(c *cursor) {
 // NOTE: torderPrior and porderPrior must not be modified. To avoid a bit of
 // unnecessary allocations, these arguments are views into data that is used to
 // build a fetch request.
-type PreferLagFn func(lag map[string]map[int32]int64, torderPrior []string, porderPrior map[string][]int32) ([]string, map[string][]int32)
+type PreferLagFn func(
+	lag map[string]map[int32]int64,
+	torderPrior []string,
+	porderPrior map[string][]int32,
+) ([]string, map[string][]int32)
 
 // PreferLagAt is a simple PreferLagFn that orders the largest lag first, for
 // any topic that is collectively lagging more than preferLagAt, and for any

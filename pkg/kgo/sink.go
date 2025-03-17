@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kbin"
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kbin"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 type sink struct {
@@ -342,7 +342,9 @@ func (s *sink) produce(sem <-chan struct{}) bool {
 			if errors.Is(pe.err, context.Canceled) && isHolCtxDone() {
 				// Some head-of-line record in a partition had a context cancelation.
 				// We look for any partition with HOL cancelations and fail them all.
-				s.cl.cfg.logger.Log(LogLevelInfo, "the first record in some partition(s) had a context cancelation; failing all relevant partitions", "broker", logID(s.nodeID))
+				s.cl.cfg.logger.Log(LogLevelInfo,
+					"the first record in some partition(s) had a context cancelation; failing all relevant partitions",
+					"broker", logID(s.nodeID))
 				s.recBufsMu.Lock()
 				defer s.recBufsMu.Unlock()
 				for _, recBuf := range s.recBufs {
@@ -371,12 +373,14 @@ func (s *sink) produce(sem <-chan struct{}) bool {
 				return true
 			}
 			s.cl.bumpRepeatedLoadErr(err)
-			s.cl.cfg.logger.Log(LogLevelWarn, "unable to load producer ID, bumping client's buffered record load errors by 1 and retrying")
+			s.cl.cfg.logger.Log(LogLevelWarn,
+				"unable to load producer ID, bumping client's buffered record load errors by 1 and retrying")
 			return true // whatever caused our produce, we did nothing, so keep going
 		case errors.Is(err, ErrClientClosed):
 			s.cl.failBufferedRecords(err)
 		default:
-			s.cl.cfg.logger.Log(LogLevelError, "fatal InitProducerID error, failing all buffered records", "broker", logID(s.nodeID), "err", err)
+			s.cl.cfg.logger.Log(LogLevelError, "fatal InitProducerID error, failing all buffered records", "broker",
+				logID(s.nodeID), "err", err)
 			s.cl.failBufferedRecords(err)
 		}
 		return false
@@ -424,8 +428,11 @@ func (s *sink) produce(sem <-chan struct{}) bool {
 				// only way to notify the user to abort the txn.
 			case isRetryableBrokerErr(err) || isDialNonTimeoutErr(err):
 				s.cl.bumpRepeatedLoadErr(err)
-				s.cl.cfg.logger.Log(LogLevelWarn, "unable to AddPartitionsToTxn due to retryable broker err, bumping client's buffered record load errors by 1 and retrying", "err", err)
-				s.cl.triggerUpdateMetadata(false, "attempting to refresh broker list due to failed AddPartitionsToTxn requests")
+				s.cl.cfg.logger.Log(LogLevelWarn,
+					"unable to AddPartitionsToTxn due to retryable broker err, bumping client's buffered record load errors by 1 and retrying",
+					"err", err)
+				s.cl.triggerUpdateMetadata(false,
+					"attempting to refresh broker list due to failed AddPartitionsToTxn requests")
 				return moreToDrain || len(req.batches) > 0 // nothing stripped if request-issuing error
 			default:
 				// Note that err can be InvalidProducerEpoch, which is
@@ -435,7 +442,9 @@ func (s *sink) produce(sem <-chan struct{}) bool {
 				// because that can lead to undesirable behavior
 				// with produce request vs. end txn (KAFKA-12671)
 				s.cl.failProducerID(id, epoch, err)
-				s.cl.cfg.logger.Log(LogLevelError, "fatal AddPartitionsToTxn error, failing all buffered records (it is possible the client can recover after EndTransaction)", "broker", logID(s.nodeID), "err", err)
+				s.cl.cfg.logger.Log(LogLevelError,
+					"fatal AddPartitionsToTxn error, failing all buffered records (it is possible the client can recover after EndTransaction)",
+					"broker", logID(s.nodeID), "err", err)
 				return false
 			}
 		}
@@ -564,7 +573,8 @@ func (s *sink) issueTxnReq(
 	for _, topic := range resp.Topics {
 		topicBatches, ok := req.batches[topic.Topic]
 		if !ok {
-			s.cl.cfg.logger.Log(LogLevelError, "broker replied with topic in AddPartitionsToTxnResponse that was not in request", "topic", topic.Topic)
+			s.cl.cfg.logger.Log(LogLevelError,
+				"broker replied with topic in AddPartitionsToTxnResponse that was not in request", "topic", topic.Topic)
 			continue
 		}
 		for _, partition := range topic.Partitions {
@@ -579,7 +589,9 @@ func (s *sink) issueTxnReq(
 
 				batch, ok := topicBatches[partition.Partition]
 				if !ok {
-					s.cl.cfg.logger.Log(LogLevelError, "broker replied with partition in AddPartitionsToTxnResponse that was not in request", "topic", topic.Topic, "partition", partition.Partition)
+					s.cl.cfg.logger.Log(LogLevelError,
+						"broker replied with partition in AddPartitionsToTxnResponse that was not in request", "topic",
+						topic.Topic, "partition", partition.Partition)
 					continue
 				}
 
@@ -632,7 +644,8 @@ func (s *sink) firstRespCheck(idempotent bool, version int16) {
 func (s *sink) handleReqClientErr(req *produceRequest, err error) {
 	switch {
 	default:
-		s.cl.cfg.logger.Log(LogLevelWarn, "random error while producing, requeueing unattempted request", "broker", logID(s.nodeID), "err", err)
+		s.cl.cfg.logger.Log(LogLevelWarn, "random error while producing, requeueing unattempted request", "broker",
+			logID(s.nodeID), "err", err)
 		fallthrough
 
 	case errors.Is(err, errUnknownBroker),
@@ -640,9 +653,11 @@ func (s *sink) handleReqClientErr(req *produceRequest, err error) {
 		isRetryableBrokerErr(err):
 		updateMeta := !isRetryableBrokerErr(err)
 		if updateMeta {
-			s.cl.cfg.logger.Log(LogLevelInfo, "produce request failed, triggering metadata update", "broker", logID(s.nodeID), "err", err)
+			s.cl.cfg.logger.Log(LogLevelInfo, "produce request failed, triggering metadata update", "broker",
+				logID(s.nodeID), "err", err)
 		}
-		s.handleRetryBatches(req.batches, nil, req.backoffSeq, updateMeta, false, "failed produce request triggered metadata update")
+		s.handleRetryBatches(req.batches, nil, req.backoffSeq, updateMeta, false,
+			"failed produce request triggered metadata update")
 
 	case errors.Is(err, ErrClientClosed):
 		s.cl.failBufferedRecords(ErrClientClosed)
@@ -714,7 +729,9 @@ func (s *sink) handleReqResp(br *broker, req *produceRequest, resp kmsg.Response
 		topic := rt.Topic
 		partitions, ok := req.batches[topic]
 		if !ok {
-			s.cl.cfg.logger.Log(LogLevelError, "broker erroneously replied with topic in produce request that we did not produce to", "broker", logID(s.nodeID), "topic", topic)
+			s.cl.cfg.logger.Log(LogLevelError,
+				"broker erroneously replied with topic in produce request that we did not produce to", "broker",
+				logID(s.nodeID), "topic", topic)
 			delete(req.metrics, topic)
 			continue // should not hit this
 		}
@@ -729,7 +746,9 @@ func (s *sink) handleReqResp(br *broker, req *produceRequest, resp kmsg.Response
 			partition := rp.Partition
 			batch, ok := partitions[partition]
 			if !ok {
-				s.cl.cfg.logger.Log(LogLevelError, "broker erroneously replied with partition in produce request that we did not produce to", "broker", logID(s.nodeID), "topic", rt.Topic, "partition", partition)
+				s.cl.cfg.logger.Log(LogLevelError,
+					"broker erroneously replied with partition in produce request that we did not produce to", "broker",
+					logID(s.nodeID), "topic", rt.Topic, "partition", partition)
 				delete(tmetrics, partition)
 				continue // should not hit this
 			}
@@ -766,7 +785,9 @@ func (s *sink) handleReqResp(br *broker, req *produceRequest, resp kmsg.Response
 	}
 
 	if len(req.batches) > 0 {
-		s.cl.cfg.logger.Log(LogLevelError, "broker did not reply to all topics / partitions in the produce request! reenqueuing missing partitions", "broker", logID(s.nodeID))
+		s.cl.cfg.logger.Log(LogLevelError,
+			"broker did not reply to all topics / partitions in the produce request! reenqueuing missing partitions",
+			"broker", logID(s.nodeID))
 		s.handleRetryBatches(req.batches, nil, 0, true, false, "broker did not reply to all topics in produce request")
 	}
 	if len(reqRetry) > 0 {
@@ -828,7 +849,8 @@ func (s *sink) handleReqRespBatch(
 
 	if moving := kmove.maybeAddProducePartition(resp, rp, batch.owner); moving {
 		if debug {
-			fmt.Fprintf(b, "move:%d:%d@%d,%d}, ", rp.CurrentLeader.LeaderID, rp.CurrentLeader.LeaderEpoch, rp.BaseOffset, nrec)
+			fmt.Fprintf(b, "move:%d:%d@%d,%d}, ", rp.CurrentLeader.LeaderID, rp.CurrentLeader.LeaderEpoch,
+				rp.BaseOffset, nrec)
 		}
 		batch.owner.failing = true
 		return true, false
@@ -901,7 +923,8 @@ func (s *sink) handleReqRespBatch(
 		// TRANSACTION_TIMED_OUT.
 
 		if batch.owner.lastAckedOffset >= 0 && rp.LogStartOffset > batch.owner.lastAckedOffset {
-			s.cl.cfg.logger.Log(LogLevelInfo, "partition prefix truncation to after our last produce caused the broker to forget us; no loss occurred, bumping producer epoch and resetting sequence numbers",
+			s.cl.cfg.logger.Log(LogLevelInfo,
+				"partition prefix truncation to after our last produce caused the broker to forget us; no loss occurred, bumping producer epoch and resetting sequence numbers",
 				"broker", logID(s.nodeID),
 				"topic", topic,
 				"partition", rp.Partition,
@@ -947,7 +970,9 @@ func (s *sink) handleReqRespBatch(
 		//
 		// We should not be here, since this error occurs in the
 		// context of transactions, which are caught above.
-		s.cl.cfg.logger.Log(LogLevelInfo, fmt.Sprintf("batch errored with %s, failing the producer ID and resetting all sequence numbers", err.(*kerr.Error).Message),
+		s.cl.cfg.logger.Log(LogLevelInfo,
+			fmt.Sprintf("batch errored with %s, failing the producer ID and resetting all sequence numbers",
+				err.(*kerr.Error).Message),
 			"broker", logID(s.nodeID),
 			"topic", topic,
 			"partition", rp.Partition,
@@ -967,7 +992,8 @@ func (s *sink) handleReqRespBatch(
 		return true, false
 
 	case err == kerr.DuplicateSequenceNumber: // ignorable, but we should not get
-		s.cl.cfg.logger.Log(LogLevelInfo, "received unexpected duplicate sequence number, ignoring and treating batch as successful",
+		s.cl.cfg.logger.Log(LogLevelInfo,
+			"received unexpected duplicate sequence number, ignoring and treating batch as successful",
 			"broker", logID(s.nodeID),
 			"topic", topic,
 			"partition", rp.Partition,
@@ -1006,7 +1032,14 @@ func (s *sink) handleReqRespBatch(
 //
 // This is safe even if the owning recBuf migrated sinks, since we are
 // finishing based off the status of an inflight req from the original sink.
-func (cl *Client) finishBatch(batch *recBatch, producerID int64, producerEpoch int16, partition int32, baseOffset int64, err error) {
+func (cl *Client) finishBatch(
+	batch *recBatch,
+	producerID int64,
+	producerEpoch int16,
+	partition int32,
+	baseOffset int64,
+	err error,
+) {
 	recBuf := batch.owner
 
 	if err != nil {
@@ -1086,7 +1119,8 @@ func (s *sink) handleRetryBatches(
 		// to backoff on this sink nor trigger a metadata update.
 		if batch.owner.sink != s {
 			if debug {
-				logger.Log(LogLevelDebug, "transitioned sinks while a request was inflight, retrying immediately on new sink without backoff",
+				logger.Log(LogLevelDebug,
+					"transitioned sinks while a request was inflight, retrying immediately on new sink without backoff",
 					"topic", batch.owner.topic,
 					"partition", batch.owner.partition,
 					"old_sink", s.nodeID,
@@ -1719,9 +1753,9 @@ func (b *recBatch) decInflight() {
 	}
 }
 
-////////////////////
+// //////////////////
 // produceRequest //
-////////////////////
+// //////////////////
 
 // produceRequest is a kmsg.Request that is used when we want to
 // flush our buffered records.
@@ -1905,9 +1939,9 @@ func (bs recBatches) eachOwnerLocked(fn func(*recBatch)) {
 	}
 }
 
-//////////////
+// ////////////
 // COUNTING // - this section is all about counting how bytes lay out on the wire
-//////////////
+// ////////////
 
 // Returns the non-flexible base produce request length (the request header and
 // the request itself with no topics).
@@ -1920,13 +1954,13 @@ func (cl *Client) baseProduceRequestLength() int32 {
 		2 + // int16 version
 		4 + // int32 correlation ID
 		2 // int16 client ID len (always non flexible)
-		// empty tag section skipped; see below
+	// empty tag section skipped; see below
 
 	const produceRequestBaseOverhead int32 = 2 + // int16 transactional ID len (flexible or not, since we cap at 16382)
 		2 + // int16 acks
 		4 + // int32 timeout
 		4 // int32 topics non-flexible array length
-		// empty tag section skipped; see below
+	// empty tag section skipped; see below
 
 	baseLength := messageRequestOverhead + produceRequestBaseOverhead
 	if cl.cfg.id != nil {
@@ -2070,7 +2104,11 @@ func (b *recBatch) wireLengthForProduceVersion(v int32) (batchWireLength int32, 
 	return
 }
 
-func (b *recBatch) tryBuffer(pr promisedRec, produceVersion, maxBatchBytes int32, abortOnNewBatch bool) (appended, aborted bool) {
+func (b *recBatch) tryBuffer(
+	pr promisedRec,
+	produceVersion, maxBatchBytes int32,
+	abortOnNewBatch bool,
+) (appended, aborted bool) {
 	nums := b.calculateRecordNumbers(pr.Record)
 
 	batchWireLength, _ := b.wireLengthForProduceVersion(produceVersion)
@@ -2090,9 +2128,9 @@ func (b *recBatch) tryBuffer(pr promisedRec, produceVersion, maxBatchBytes int32
 	return true, false
 }
 
-//////////////
+// ////////////
 // ENCODING // - this section is all about actually writing a produce request
-//////////////
+// ////////////
 
 func (*produceRequest) Key() int16           { return 0 }
 func (*produceRequest) MaxVersion() int16    { return 11 }
@@ -2154,7 +2192,8 @@ func (p *produceRequest) AppendTo(dst []byte) []byte {
 			if p.version < 3 {
 				dst, pmetrics = batch.appendToAsMessageSet(dst, uint8(p.version), p.compressor)
 			} else {
-				dst, pmetrics = batch.appendTo(dst, p.version, p.producerID, p.producerEpoch, p.txnID != nil, p.compressor)
+				dst, pmetrics = batch.appendTo(dst, p.version, p.producerID, p.producerEpoch, p.txnID != nil,
+					p.compressor)
 			}
 			batch.mu.Unlock()
 			if p.hasHook {
@@ -2323,7 +2362,11 @@ func (pr promisedRec) appendTo(dst []byte, offsetDelta int32) []byte {
 	return dst
 }
 
-func (b seqRecBatch) appendToAsMessageSet(dst []byte, version uint8, compressor *compressor) ([]byte, ProduceBatchMetrics) {
+func (b seqRecBatch) appendToAsMessageSet(
+	dst []byte,
+	version uint8,
+	compressor *compressor,
+) ([]byte, ProduceBatchMetrics) {
 	var m ProduceBatchMetrics
 
 	nullableBytesLenAt := len(dst)

@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kgo/internal/sticky"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kgo/internal/sticky"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // GroupBalancer balances topics and partitions among group members.
@@ -122,7 +122,12 @@ func (b *ConsumerBalancer) Members() []kmsg.JoinGroupResponseMember {
 
 // EachMember calls fn for each member and its corresponding metadata in the
 // consumer group being balanced.
-func (b *ConsumerBalancer) EachMember(fn func(member *kmsg.JoinGroupResponseMember, meta *kmsg.ConsumerMemberMetadata)) {
+func (b *ConsumerBalancer) EachMember(
+	fn func(
+		member *kmsg.JoinGroupResponseMember,
+		meta *kmsg.ConsumerMemberMetadata,
+	),
+) {
 	for i := range b.members {
 		fn(&b.members[i], &b.metadatas[i])
 	}
@@ -193,7 +198,10 @@ func ParseConsumerSyncAssignment(assignment []byte) (map[string][]int32, error) 
 // kmsg.ConsumerMemberMetadata and returns a ConsumerBalancer to use in balancing.
 //
 // If any metadata parsing fails, this returns an error.
-func NewConsumerBalancer(balance ConsumerBalancerBalance, members []kmsg.JoinGroupResponseMember) (*ConsumerBalancer, error) {
+func NewConsumerBalancer(
+	balance ConsumerBalancerBalance,
+	members []kmsg.JoinGroupResponseMember,
+) (*ConsumerBalancer, error) {
 	b := &ConsumerBalancer{
 		b:         balance,
 		members:   members,
@@ -301,7 +309,8 @@ func (p *BalancePlan) IntoSyncAssignment() []kmsg.SyncGroupRequestGroupAssignmen
 			assnTopic.Partitions = partitions
 			kassignment.Topics = append(kassignment.Topics, assnTopic)
 		}
-		sort.Slice(kassignment.Topics, func(i, j int) bool { return kassignment.Topics[i].Topic < kassignment.Topics[j].Topic })
+		sort.Slice(kassignment.Topics,
+			func(i, j int) bool { return kassignment.Topics[i].Topic < kassignment.Topics[j].Topic })
 		syncAssn := kmsg.NewSyncGroupRequestGroupAssignment()
 		syncAssn.MemberID = member
 		syncAssn.MemberAssignment = kassignment.AppendTo(nil)
@@ -342,8 +351,10 @@ func (g *groupConsumer) findBalancer(from, proto string) (GroupBalancer, error) 
 	for _, b := range g.cfg.balancers {
 		ours = append(ours, b.ProtocolName())
 	}
-	g.cl.cfg.logger.Log(LogLevelError, fmt.Sprintf("%s could not find broker-chosen balancer", from), "kafka_choice", proto, "our_set", strings.Join(ours, ", "))
-	return nil, fmt.Errorf("unable to balance: none of our balancers have a name equal to the balancer chosen for balancing (%s)", proto)
+	g.cl.cfg.logger.Log(LogLevelError, fmt.Sprintf("%s could not find broker-chosen balancer", from), "kafka_choice",
+		proto, "our_set", strings.Join(ours, ", "))
+	return nil, fmt.Errorf("unable to balance: none of our balancers have a name equal to the balancer chosen for balancing (%s)",
+		proto)
 }
 
 // balanceGroup returns a balancePlan from a join group response.
@@ -352,7 +363,11 @@ func (g *groupConsumer) findBalancer(from, proto string) (GroupBalancer, error) 
 // returns all topics and partitions; the leader will then periodically do its
 // own metadata update to see if partition counts have changed for these random
 // topics.
-func (g *groupConsumer) balanceGroup(proto string, members []kmsg.JoinGroupResponseMember, skipBalance bool) ([]kmsg.SyncGroupRequestGroupAssignment, error) {
+func (g *groupConsumer) balanceGroup(
+	proto string,
+	members []kmsg.JoinGroupResponseMember,
+	skipBalance bool,
+) ([]kmsg.SyncGroupRequestGroupAssignment, error) {
 	g.cl.cfg.logger.Log(LogLevelInfo, "balancing group as leader")
 
 	b, err := g.findBalancer("balance group", proto)
@@ -397,7 +412,8 @@ func (g *groupConsumer) balanceGroup(proto string, members []kmsg.JoinGroupRespo
 	}
 
 	if needMeta {
-		g.cl.cfg.logger.Log(LogLevelInfo, "group members indicated interest in topics the leader is not assigned, fetching metadata for all group topics")
+		g.cl.cfg.logger.Log(LogLevelInfo,
+			"group members indicated interest in topics the leader is not assigned, fetching metadata for all group topics")
 		var metaTopics []string
 		for topic := range topics {
 			metaTopics = append(metaTopics, topic)
@@ -410,11 +426,13 @@ func (g *groupConsumer) balanceGroup(proto string, members []kmsg.JoinGroupRespo
 		for i := range resp.Topics {
 			t := &resp.Topics[i]
 			if t.Topic == nil {
-				g.cl.cfg.logger.Log(LogLevelWarn, "metadata resp in balance for topic has nil topic, skipping...", "err", kerr.ErrorForCode(t.ErrorCode))
+				g.cl.cfg.logger.Log(LogLevelWarn, "metadata resp in balance for topic has nil topic, skipping...",
+					"err", kerr.ErrorForCode(t.ErrorCode))
 				continue
 			}
 			if t.ErrorCode != 0 {
-				g.cl.cfg.logger.Log(LogLevelWarn, "metadata resp in balance for topic has error, skipping...", "topic", t.Topic, "err", kerr.ErrorForCode(t.ErrorCode))
+				g.cl.cfg.logger.Log(LogLevelWarn, "metadata resp in balance for topic has error, skipping...", "topic",
+					t.Topic, "err", kerr.ErrorForCode(t.ErrorCode))
 				continue
 			}
 			topicPartitionCount[*t.Topic] = int32(len(t.Partitions))
@@ -439,13 +457,16 @@ func (g *groupConsumer) balanceGroup(proto string, members []kmsg.JoinGroupRespo
 			strInterests = strings.TrimSuffix(strInterests, ", ")
 
 			if member.InstanceID == nil {
-				g.cl.cfg.logger.Log(LogLevelInfo, "balance group member", "id", member.MemberID, "interests", strInterests)
+				g.cl.cfg.logger.Log(LogLevelInfo, "balance group member", "id", member.MemberID, "interests",
+					strInterests)
 			} else {
-				g.cl.cfg.logger.Log(LogLevelInfo, "balance group member", "id", member.MemberID, "instance_id", *member.InstanceID, "interests", strInterests)
+				g.cl.cfg.logger.Log(LogLevelInfo, "balance group member", "id", member.MemberID, "instance_id",
+					*member.InstanceID, "interests", strInterests)
 			}
 		})
 	} else {
-		g.cl.cfg.logger.Log(LogLevelInfo, "unable to log information about group member interests: the user has defined a custom balancer (not a *ConsumerBalancer)")
+		g.cl.cfg.logger.Log(LogLevelInfo,
+			"unable to log information about group member interests: the user has defined a custom balancer (not a *ConsumerBalancer)")
 	}
 
 	// KIP-814: we are leader and we know what the entire group is
@@ -480,7 +501,8 @@ func (g *groupConsumer) balanceGroup(proto string, members []kmsg.JoinGroupRespo
 	if p, ok := into.(*BalancePlan); ok {
 		g.cl.cfg.logger.Log(LogLevelInfo, "balanced", "plan", p.String())
 	} else {
-		g.cl.cfg.logger.Log(LogLevelInfo, "unable to log balance plan: the user has returned a custom IntoSyncAssignment (not a *BalancePlan)")
+		g.cl.cfg.logger.Log(LogLevelInfo,
+			"unable to log balance plan: the user has returned a custom IntoSyncAssignment (not a *BalancePlan)")
 	}
 
 	return into.IntoSyncAssignment(), nil
@@ -496,9 +518,9 @@ func simpleMemberMetadata(interests []string, generation int32) []byte {
 	return meta.AppendTo(nil)
 }
 
-///////////////////
+// /////////////////
 // Balance Plans //
-///////////////////
+// /////////////////
 
 // RoundRobinBalancer returns a group balancer that evenly maps topics and
 // partitions to group members.
@@ -736,7 +758,11 @@ func (s *stickyBalancer) ProtocolName() string {
 	return "sticky"
 }
 func (s *stickyBalancer) IsCooperative() bool { return s.cooperative }
-func (s *stickyBalancer) JoinGroupMetadata(interests []string, currentAssignment map[string][]int32, generation int32) []byte {
+func (s *stickyBalancer) JoinGroupMetadata(
+	interests []string,
+	currentAssignment map[string][]int32,
+	generation int32,
+) []byte {
 	meta := kmsg.NewConsumerMemberMetadata()
 	meta.Version = 3 // BUMP ME WHEN NEW FIELDS ARE ADDED, AND BUMP ABOVE
 	meta.Topics = interests

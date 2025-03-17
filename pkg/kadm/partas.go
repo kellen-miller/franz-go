@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 // AlterPartitionAssignmentsReq is the input for a request to alter partition
@@ -84,7 +84,10 @@ func (rs AlterPartitionAssignmentsResponses) Error() error {
 // AlterPartitionAssignments alters partition assignments for the requested
 // partitions, returning an error if the response could not be issued or if
 // you do not have permissions.
-func (cl *Client) AlterPartitionAssignments(ctx context.Context, req AlterPartitionAssignmentsReq) (AlterPartitionAssignmentsResponses, error) {
+func (cl *Client) AlterPartitionAssignments(
+	ctx context.Context,
+	req AlterPartitionAssignmentsReq,
+) (AlterPartitionAssignmentsResponses, error) {
 	if len(req) == 0 {
 		return make(AlterPartitionAssignmentsResponses), nil
 	}
@@ -166,7 +169,10 @@ func (rs ListPartitionReassignmentsResponses) Each(fn func(ListPartitionReassign
 // ListPartitionReassignments lists the state of any active reassignments for
 // all requested partitions, returning an error if the response could not be
 // issued or if you do not have permissions.
-func (cl *Client) ListPartitionReassignments(ctx context.Context, s TopicsSet) (ListPartitionReassignmentsResponses, error) {
+func (cl *Client) ListPartitionReassignments(
+	ctx context.Context,
+	s TopicsSet,
+) (ListPartitionReassignmentsResponses, error) {
 	if len(s) == 0 {
 		return make(ListPartitionReassignmentsResponses), nil
 	}

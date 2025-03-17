@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 
-	"github.com/twmb/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
 )
 
 func ctx2fn(ctx context.Context) func() context.Context { return func() context.Context { return ctx } }
@@ -84,53 +84,58 @@ func NewGroupTransactSession(opts ...Opt) (*GroupTransactSession, error) {
 	// We append one option, which will get applied last. Because it is
 	// applied last, we can execute some logic and override some existing
 	// options.
-	opts = append(opts, groupOpt{func(cfg *cfg) {
-		if cfg.group == "" {
-			cfg.seedBrokers = nil // force a validation error
-			noGroup = errors.New("missing required group")
-			return
-		}
-
-		userRevoked := cfg.onRevoked
-		cfg.onRevoked = func(ctx context.Context, cl *Client, rev map[string][]int32) {
-			s.failMu.Lock()
-			defer s.failMu.Unlock()
-			if s.revoked {
+	opts = append(opts, groupOpt{
+		func(cfg *cfg) {
+			if cfg.group == "" {
+				cfg.seedBrokers = nil // force a validation error
+				noGroup = errors.New("missing required group")
 				return
 			}
 
-			if cl.consumer.g.cooperative.Load() && len(rev) == 0 && !s.revoked {
-				cl.cfg.logger.Log(LogLevelInfo, "transact session in on_revoke with nothing to revoke; allowing next commit")
-			} else {
-				cl.cfg.logger.Log(LogLevelInfo, "transact session in on_revoke; aborting next commit if we are currently in a transaction")
-				s.revoked = true
-				close(s.revokedCh)
+			userRevoked := cfg.onRevoked
+			cfg.onRevoked = func(ctx context.Context, cl *Client, rev map[string][]int32) {
+				s.failMu.Lock()
+				defer s.failMu.Unlock()
+				if s.revoked {
+					return
+				}
+
+				if cl.consumer.g.cooperative.Load() && len(rev) == 0 && !s.revoked {
+					cl.cfg.logger.Log(LogLevelInfo,
+						"transact session in on_revoke with nothing to revoke; allowing next commit")
+				} else {
+					cl.cfg.logger.Log(LogLevelInfo,
+						"transact session in on_revoke; aborting next commit if we are currently in a transaction")
+					s.revoked = true
+					close(s.revokedCh)
+				}
+
+				if userRevoked != nil {
+					userRevoked(ctx, cl, rev)
+				}
 			}
 
-			if userRevoked != nil {
-				userRevoked(ctx, cl, rev)
-			}
-		}
+			userLost := cfg.onLost
+			cfg.onLost = func(ctx context.Context, cl *Client, lost map[string][]int32) {
+				s.failMu.Lock()
+				defer s.failMu.Unlock()
+				if s.lost {
+					return
+				}
 
-		userLost := cfg.onLost
-		cfg.onLost = func(ctx context.Context, cl *Client, lost map[string][]int32) {
-			s.failMu.Lock()
-			defer s.failMu.Unlock()
-			if s.lost {
-				return
-			}
+				cl.cfg.logger.Log(LogLevelInfo,
+					"transact session in on_lost; aborting next commit if we are currently in a transaction")
+				s.lost = true
+				close(s.lostCh)
 
-			cl.cfg.logger.Log(LogLevelInfo, "transact session in on_lost; aborting next commit if we are currently in a transaction")
-			s.lost = true
-			close(s.lostCh)
-
-			if userLost != nil {
-				userLost(ctx, cl, lost)
-			} else if userRevoked != nil {
-				userRevoked(ctx, cl, lost)
+				if userLost != nil {
+					userLost(ctx, cl, lost)
+				} else if userRevoked != nil {
+					userRevoked(ctx, cl, lost)
+				}
 			}
-		}
-	}})
+		},
+	})
 
 	cl, err := NewClient(opts...)
 	if err != nil {
@@ -322,7 +327,8 @@ func (s *GroupTransactSession) End(ctx context.Context, commit TransactionEndTry
 							if isAbortableCommitErr(err) {
 								hasAbortableCommitErr = true
 							} else {
-								commitErrs = append(commitErrs, fmt.Sprintf("topic %s partition %d: %v", t.Topic, p.Partition, err))
+								commitErrs = append(commitErrs,
+									fmt.Sprintf("topic %s partition %d: %v", t.Topic, p.Partition, err))
 							}
 						}
 					}
@@ -382,7 +388,8 @@ func (s *GroupTransactSession) End(ctx context.Context, commit TransactionEndTry
 	} else {
 		defer func() {
 			if committed {
-				s.cl.cfg.logger.Log(LogLevelDebug, "sleeping 200ms before allowing a rebalance to continue to give the brokers a chance to write txn markers and avoid duplicates")
+				s.cl.cfg.logger.Log(LogLevelDebug,
+					"sleeping 200ms before allowing a rebalance to continue to give the brokers a chance to write txn markers and avoid duplicates")
 				go func() {
 					time.Sleep(200 * time.Millisecond)
 					s.failMu.Unlock()
@@ -440,7 +447,8 @@ retry:
 
 	if !willTryCommit || endTxnErr != nil {
 		currentCommit := s.cl.CommittedOffsets()
-		s.cl.cfg.logger.Log(LogLevelInfo, "transact session resetting to current committed state (potentially after a rejoin)",
+		s.cl.cfg.logger.Log(LogLevelInfo,
+			"transact session resetting to current committed state (potentially after a rejoin)",
 			"tried_commit", willTryCommit,
 			"commit_err", endTxnErr,
 			"state_precommit", precommit,
@@ -490,7 +498,8 @@ func (cl *Client) BeginTransaction() error {
 
 	needRecover, didRecover, err := cl.maybeRecoverProducerID(context.Background())
 	if needRecover && !didRecover {
-		cl.cfg.logger.Log(LogLevelInfo, "unable to begin transaction due to unrecoverable producer id error", "err", err)
+		cl.cfg.logger.Log(LogLevelInfo, "unable to begin transaction due to unrecoverable producer id error", "err",
+			err)
 		return fmt.Errorf("producer ID has a fatal, unrecoverable error, err: %w", err)
 	}
 
@@ -579,7 +588,8 @@ func (cl *Client) EndAndBeginTransaction(
 		if rerr == nil {
 			needRecover, didRecover, err := cl.maybeRecoverProducerID(ctx)
 			if needRecover && !didRecover {
-				cl.cfg.logger.Log(LogLevelInfo, "unable to begin transaction due to unrecoverable producer id error", "err", err)
+				cl.cfg.logger.Log(LogLevelInfo, "unable to begin transaction due to unrecoverable producer id error",
+					"err", err)
 				rerr = fmt.Errorf("producer ID has a fatal, unrecoverable error, err: %w", err)
 				return
 			}
@@ -635,7 +645,8 @@ func (cl *Client) EndAndBeginTransaction(
 
 	// EndTxn when no txn was started returns INVALID_TXN_STATE.
 	if !anyAdded {
-		cl.cfg.logger.Log(LogLevelDebug, "no records were produced during the commit; thus no transaction was began; ending without doing anything")
+		cl.cfg.logger.Log(LogLevelDebug,
+			"no records were produced during the commit; thus no transaction was began; ending without doing anything")
 		return nil
 	}
 
@@ -878,7 +889,8 @@ func (cl *Client) EndTransaction(ctx context.Context, commit TransactionEndTry) 
 			anyAdded = true
 		}
 	} else {
-		cl.cfg.logger.Log(LogLevelDebug, "transaction ending, no group loaded; this must be a producer-only transaction, not consume-modify-produce EOS")
+		cl.cfg.logger.Log(LogLevelDebug,
+			"transaction ending, no group loaded; this must be a producer-only transaction, not consume-modify-produce EOS")
 	}
 
 	// After the flush, no records are being produced to, and we can set
@@ -899,7 +911,8 @@ func (cl *Client) EndTransaction(ctx context.Context, commit TransactionEndTry) 
 	// Note that anyAdded is true if the producer ID was failed, meaning we will
 	// get to the potential recovery logic below if necessary.
 	if !anyAdded {
-		cl.cfg.logger.Log(LogLevelDebug, "no records were produced during the commit; thus no transaction was began; ending without doing anything")
+		cl.cfg.logger.Log(LogLevelDebug,
+			"no records were produced during the commit; thus no transaction was began; ending without doing anything")
 		return nil
 	}
 
@@ -974,8 +987,10 @@ func (cl *Client) maybeRecoverProducerID(ctx context.Context) (necessary, did bo
 		return true, false, err
 	}
 
-	kip360 := cl.producer.idVersion >= 3 && (errors.Is(ke, kerr.UnknownProducerID) || errors.Is(ke, kerr.InvalidProducerIDMapping))
-	kip588 := cl.producer.idVersion >= 4 && errors.Is(ke, kerr.InvalidProducerEpoch /* || err == kerr.TransactionTimedOut when implemented in Kafka */)
+	kip360 := cl.producer.idVersion >= 3 && (errors.Is(ke, kerr.UnknownProducerID) || errors.Is(ke,
+		kerr.InvalidProducerIDMapping))
+	kip588 := cl.producer.idVersion >= 4 && errors.Is(ke,
+		kerr.InvalidProducerEpoch /* || err == kerr.TransactionTimedOut when implemented in Kafka */)
 
 	recoverable := kip360 || kip588
 	if !recoverable {
@@ -1022,7 +1037,9 @@ start:
 		}
 
 		tries++
-		cl.cfg.logger.Log(LogLevelDebug, fmt.Sprintf("%s failed with CONCURRENT_TRANSACTIONS, which may be because we ended a txn and began producing in a new txn too quickly; backing off and retrying", name),
+		cl.cfg.logger.Log(LogLevelDebug,
+			fmt.Sprintf("%s failed with CONCURRENT_TRANSACTIONS, which may be because we ended a txn and began producing in a new txn too quickly; backing off and retrying",
+				name),
 			"backoff", backoff,
 			"since_request_tries_start", time.Since(start),
 			"tries", tries,
@@ -1041,10 +1058,10 @@ start:
 	return err
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////////////////
 // TRANSACTIONAL COMMITTING                                                               //
 // MOSTLY DUPLICATED CODE DUE TO NO GENERICS AND BECAUSE THE TYPES ARE SLIGHTLY DIFFERENT //
-////////////////////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////////////////////
 
 // commitTransactionOffsets is exactly like CommitOffsets, but specifically for
 // use with transactional consuming and producing.
@@ -1137,24 +1154,25 @@ func (cl *Client) addOffsetsToTxn(ctx context.Context, group string) error {
 		return err
 	}
 
-	err = cl.doWithConcurrentTransactions(ctx, "AddOffsetsToTxn", func() error { // committing offsets without producing causes a transaction to begin within Kafka
-		cl.cfg.logger.Log(LogLevelInfo, "issuing AddOffsetsToTxn",
-			"txn", *cl.cfg.txnID,
-			"producerID", id,
-			"producerEpoch", epoch,
-			"group", group,
-		)
-		req := kmsg.NewPtrAddOffsetsToTxnRequest()
-		req.TransactionalID = *cl.cfg.txnID
-		req.ProducerID = id
-		req.ProducerEpoch = epoch
-		req.Group = group
-		resp, err := req.RequestWith(ctx, cl)
-		if err != nil {
-			return err
-		}
-		return kerr.ErrorForCode(resp.ErrorCode)
-	})
+	err = cl.doWithConcurrentTransactions(ctx, "AddOffsetsToTxn",
+		func() error { // committing offsets without producing causes a transaction to begin within Kafka
+			cl.cfg.logger.Log(LogLevelInfo, "issuing AddOffsetsToTxn",
+				"txn", *cl.cfg.txnID,
+				"producerID", id,
+				"producerEpoch", epoch,
+				"group", group,
+			)
+			req := kmsg.NewPtrAddOffsetsToTxnRequest()
+			req.TransactionalID = *cl.cfg.txnID
+			req.ProducerID = id
+			req.ProducerEpoch = epoch
+			req.Group = group
+			resp, err := req.RequestWith(ctx, cl)
+			if err != nil {
+				return err
+			}
+			return kerr.ErrorForCode(resp.ErrorCode)
+		})
 
 	// If the returned error is still a Kafka error, this is fatal and we
 	// need to fail our producer ID we created just above.
@@ -1175,7 +1193,11 @@ func (cl *Client) addOffsetsToTxn(ctx context.Context, group string) error {
 // commitTxn is ALMOST EXACTLY THE SAME as commit, but changed for txn types
 // and we avoid updateCommitted. We avoid updating because we manually
 // SetOffsets when ending the transaction.
-func (g *groupConsumer) commitTxn(ctx context.Context, req *kmsg.TxnOffsetCommitRequest, onDone func(*kmsg.TxnOffsetCommitRequest, *kmsg.TxnOffsetCommitResponse, error)) {
+func (g *groupConsumer) commitTxn(
+	ctx context.Context,
+	req *kmsg.TxnOffsetCommitRequest,
+	onDone func(*kmsg.TxnOffsetCommitRequest, *kmsg.TxnOffsetCommitResponse, error),
+) {
 	if onDone == nil { // note we must always call onDone
 		onDone = func(_ *kmsg.TxnOffsetCommitRequest, _ *kmsg.TxnOffsetCommitResponse, _ error) {}
 	}
@@ -1234,7 +1256,10 @@ func (g *groupConsumer) commitTxn(ctx context.Context, req *kmsg.TxnOffsetCommit
 	}()
 }
 
-func (g *groupConsumer) prepareTxnOffsetCommit(ctx context.Context, uncommitted map[string]map[int32]EpochOffset) (*kmsg.TxnOffsetCommitRequest, error) {
+func (g *groupConsumer) prepareTxnOffsetCommit(
+	ctx context.Context,
+	uncommitted map[string]map[int32]EpochOffset,
+) (*kmsg.TxnOffsetCommitRequest, error) {
 	req := kmsg.NewPtrTxnOffsetCommitRequest()
 
 	// We're now generating the producerID before addOffsetsToTxn.

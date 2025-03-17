@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/twmb/franz-go/pkg/kerr"
-	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/kellen-miller/franz-go/pkg/kerr"
+	"github.com/kellen-miller/franz-go/pkg/kmsg"
 )
 
 type producer struct {
@@ -453,7 +453,8 @@ func (cl *Client) produce(
 		p.blockedBytes += userSize
 		p.mu.Unlock()
 
-		cl.cfg.logger.Log(LogLevelDebug, "blocking Produce because we are either over max buffered records or max buffered bytes",
+		cl.cfg.logger.Log(LogLevelDebug,
+			"blocking Produce because we are either over max buffered records or max buffered bytes",
 			"over_max_records", overMaxRecs,
 			"over_max_bytes", overMaxBytes,
 		)
@@ -503,7 +504,8 @@ func (cl *Client) produce(
 
 		select {
 		case <-wait:
-			cl.cfg.logger.Log(LogLevelDebug, "Produce block awoken, we now have space to produce, continuing to partition and produce")
+			cl.cfg.logger.Log(LogLevelDebug,
+				"Produce block awoken, we now have space to produce, continuing to partition and produce")
 		case <-cl.ctx.Done():
 			drainBuffered(ErrClientClosed)
 			cl.cfg.logger.Log(LogLevelDebug, "client ctx canceled while blocked in Produce, returning")
@@ -664,7 +666,8 @@ func (cl *Client) doPartitionRecord(parts *topicPartitions, partsData *topicPart
 		pick = parts.partitioner.Partition(pr.Record, len(mapping))
 	}
 	if pick < 0 || pick >= len(mapping) {
-		cl.producer.promiseRecord(pr, fmt.Errorf("invalid record partitioning choice of %d from %d available", pick, len(mapping)))
+		cl.producer.promiseRecord(pr,
+			fmt.Errorf("invalid record partitioning choice of %d from %d available", pick, len(mapping)))
 		return
 	}
 
@@ -684,7 +687,8 @@ func (cl *Client) doPartitionRecord(parts *topicPartitions, partsData *topicPart
 		}
 
 		if pick < 0 || pick >= len(mapping) {
-			cl.producer.promiseRecord(pr, fmt.Errorf("invalid record partitioning choice of %d from %d available", pick, len(mapping)))
+			cl.producer.promiseRecord(pr,
+				fmt.Errorf("invalid record partitioning choice of %d from %d available", pick, len(mapping)))
 			return
 		}
 		partition = mapping[pick]
@@ -738,7 +742,8 @@ func (cl *Client) producerID(ctxFn func() context.Context) (int64, int16, error)
 
 		if id = p.id.Load().(*producerID); errors.Is(id.err, errReloadProducerID) {
 			if cl.cfg.disableIdempotency {
-				cl.cfg.logger.Log(LogLevelInfo, "skipping producer id initialization because the client was configured to disable idempotent writes")
+				cl.cfg.logger.Log(LogLevelInfo,
+					"skipping producer id initialization because the client was configured to disable idempotent writes")
 				id = &producerID{
 					id:    -1,
 					epoch: -1,
@@ -836,7 +841,8 @@ func (cl *Client) failProducerID(id int64, epoch int16, err error) {
 			return
 		}
 		if current.err != nil {
-			cl.cfg.logger.Log(LogLevelInfo, "ignoring a fail producer id because our producer id has already been failed",
+			cl.cfg.logger.Log(LogLevelInfo,
+				"ignoring a fail producer id because our producer id has already been failed",
 				"current_id", current.id,
 				"current_epoch", current.epoch,
 				"current_err", current.err,
@@ -866,7 +872,8 @@ func (cl *Client) doInitProducerID(ctxFn func() context.Context, lastID int64, l
 	resp, err := req.RequestWith(ctx, cl)
 	if err != nil {
 		if errors.Is(err, errUnknownRequestKey) || errors.Is(err, errBrokerTooOld) {
-			cl.cfg.logger.Log(LogLevelInfo, "unable to initialize a producer id because the broker is too old or the client is pinned to an old version, continuing without a producer id")
+			cl.cfg.logger.Log(LogLevelInfo,
+				"unable to initialize a producer id because the broker is too old or the client is pinned to an old version, continuing without a producer id")
 			return &producerID{-1, -1, nil}, true
 		}
 		if errors.Is(err, errChosenBrokerDead) {
@@ -877,7 +884,8 @@ func (cl *Client) doInitProducerID(ctxFn func() context.Context, lastID int64, l
 			default:
 			}
 		}
-		cl.cfg.logger.Log(LogLevelInfo, "producer id initialization failure, discarding initialization attempt", "err", err)
+		cl.cfg.logger.Log(LogLevelInfo, "producer id initialization failure, discarding initialization attempt", "err",
+			err)
 		return &producerID{lastID, lastEpoch, err}, false
 	}
 
@@ -885,14 +893,16 @@ func (cl *Client) doInitProducerID(ctxFn func() context.Context, lastID int64, l
 		// We could receive concurrent transactions; this is ignorable
 		// and we just want to re-init.
 		if kerr.IsRetriable(err) || errors.Is(err, kerr.ConcurrentTransactions) {
-			cl.cfg.logger.Log(LogLevelInfo, "producer id initialization resulted in retryable error, discarding initialization attempt", "err", err)
+			cl.cfg.logger.Log(LogLevelInfo,
+				"producer id initialization resulted in retryable error, discarding initialization attempt", "err", err)
 			return &producerID{lastID, lastEpoch, err}, false
 		}
 		cl.cfg.logger.Log(LogLevelInfo, "producer id initialization errored", "err", err)
 		return &producerID{lastID, lastEpoch, err}, true
 	}
 
-	cl.cfg.logger.Log(LogLevelInfo, "producer id initialization success", "id", resp.ProducerID, "epoch", resp.ProducerEpoch)
+	cl.cfg.logger.Log(LogLevelInfo, "producer id initialization success", "id", resp.ProducerID, "epoch",
+		resp.ProducerEpoch)
 
 	// We track if this was v3. We do not need to gate this behind a mutex,
 	// because the only other use is EndTransaction's read, which is
@@ -979,7 +989,8 @@ func (cl *Client) waitUnknownTopic(
 	topic string,
 	unknown *unknownTopicProduces,
 ) {
-	cl.cfg.logger.Log(LogLevelInfo, "producing to a new topic for the first time, fetching metadata to learn its partitions", "topic", topic)
+	cl.cfg.logger.Log(LogLevelInfo,
+		"producing to a new topic for the first time, fetching metadata to learn its partitions", "topic", topic)
 
 	var (
 		tries        int
@@ -1017,10 +1028,12 @@ func (cl *Client) waitUnknownTopic(
 				cl.cfg.logger.Log(LogLevelInfo, "done waiting for metadata for new topic", "topic", topic)
 				return // metadata was successful!
 			}
-			cl.cfg.logger.Log(LogLevelInfo, "new topic metadata wait failed, retrying wait", "topic", topic, "err", retryableErr)
+			cl.cfg.logger.Log(LogLevelInfo, "new topic metadata wait failed, retrying wait", "topic", topic, "err",
+				retryableErr)
 			tries++
 			if int64(tries) >= cl.cfg.recordRetries {
-				err = fmt.Errorf("no partitions available after attempting to refresh metadata %d times, last err: %w", tries, retryableErr)
+				err = fmt.Errorf("no partitions available after attempting to refresh metadata %d times, last err: %w",
+					tries, retryableErr)
 			}
 			if cl.cfg.maxUnknownFailures >= 0 && errors.Is(retryableErr, kerr.UnknownTopicOrPartition) {
 				unknownTries++
@@ -1046,7 +1059,8 @@ func (cl *Client) waitUnknownTopic(
 	if nowUnknown != unknown {
 		return
 	}
-	cl.cfg.logger.Log(LogLevelInfo, "new topic metadata wait failed, done retrying, failing all records", "topic", topic, "err", err)
+	cl.cfg.logger.Log(LogLevelInfo, "new topic metadata wait failed, done retrying, failing all records", "topic",
+		topic, "err", err)
 
 	delete(p.unknownTopics, topic)
 	p.promiseBatch(batchPromise{

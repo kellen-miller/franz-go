@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
 )
 
 type Metrics struct {
@@ -71,7 +71,13 @@ func (m *Metrics) OnBrokerDisconnect(meta kgo.BrokerMetadata, _ net.Conn) {
 	m.disconnects.WithLabelValues(node).Inc()
 }
 
-func (m *Metrics) OnBrokerWrite(meta kgo.BrokerMetadata, _ int16, bytesWritten int, writeWait, timeToWrite time.Duration, err error) {
+func (m *Metrics) OnBrokerWrite(
+	meta kgo.BrokerMetadata,
+	_ int16,
+	bytesWritten int,
+	writeWait, timeToWrite time.Duration,
+	err error,
+) {
 	node := strconv.Itoa(int(meta.NodeID))
 	if err != nil {
 		m.writeErrs.WithLabelValues(node).Inc()
@@ -82,7 +88,13 @@ func (m *Metrics) OnBrokerWrite(meta kgo.BrokerMetadata, _ int16, bytesWritten i
 	m.writeTimings.WithLabelValues(node).Observe(timeToWrite.Seconds())
 }
 
-func (m *Metrics) OnBrokerRead(meta kgo.BrokerMetadata, _ int16, bytesRead int, readWait, timeToRead time.Duration, err error) {
+func (m *Metrics) OnBrokerRead(
+	meta kgo.BrokerMetadata,
+	_ int16,
+	bytesRead int,
+	readWait, timeToRead time.Duration,
+	err error,
+) {
 	node := strconv.Itoa(int(meta.NodeID))
 	if err != nil {
 		m.readErrs.WithLabelValues(node).Inc()
@@ -98,7 +110,12 @@ func (m *Metrics) OnBrokerThrottle(meta kgo.BrokerMetadata, throttleInterval tim
 	m.throttles.WithLabelValues(node).Observe(throttleInterval.Seconds())
 }
 
-func (m *Metrics) OnProduceBatchWritten(meta kgo.BrokerMetadata, topic string, _ int32, metrics kgo.ProduceBatchMetrics) {
+func (m *Metrics) OnProduceBatchWritten(
+	meta kgo.BrokerMetadata,
+	topic string,
+	_ int32,
+	metrics kgo.ProduceBatchMetrics,
+) {
 	node := strconv.Itoa(int(meta.NodeID))
 	m.produceBatchesUncompressed.WithLabelValues(node, topic).Add(float64(metrics.UncompressedBytes))
 	m.produceBatchesCompressed.WithLabelValues(node, topic).Add(float64(metrics.CompressedBytes))

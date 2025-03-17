@@ -14,43 +14,52 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/twmb/franz-go/plugin/kprom"
+	"github.com/kellen-miller/franz-go/plugin/kprom"
 	"github.com/twmb/tlscfg"
 
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/sasl/aws"
-	"github.com/twmb/franz-go/pkg/sasl/plain"
-	"github.com/twmb/franz-go/pkg/sasl/scram"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/sasl/aws"
+	"github.com/kellen-miller/franz-go/pkg/sasl/plain"
+	"github.com/kellen-miller/franz-go/pkg/sasl/scram"
 )
 
 var (
 	seedBrokers = flag.String("brokers", "localhost:9092", "comma delimited list of seed brokers")
 	topic       = flag.String("topic", "", "topic to produce to or consume from")
 	pprofPort   = flag.String("pprof", ":9876", "port to bind to for pprof, if non-empty")
-	prom        = flag.Bool("prometheus", false, "if true, install a /metrics path for prometheus metrics to the default handler (usage requires -pprof)")
+	prom        = flag.Bool("prometheus", false,
+		"if true, install a /metrics path for prometheus metrics to the default handler (usage requires -pprof)")
 
-	useStaticValue = flag.Bool("static-record", false, "if true, use the same record value for every record (eliminates creating and formatting values for records; implies -pool)")
+	useStaticValue = flag.Bool("static-record", false,
+		"if true, use the same record value for every record (eliminates creating and formatting values for records; implies -pool)")
 
-	recordBytes   = flag.Int("record-bytes", 100, "bytes per record value (producing)")
-	compression   = flag.String("compression", "none", "compression algorithm to use (none,gzip,snappy,lz4,zstd, for producing)")
+	recordBytes = flag.Int("record-bytes", 100, "bytes per record value (producing)")
+	compression = flag.String("compression", "none",
+		"compression algorithm to use (none,gzip,snappy,lz4,zstd, for producing)")
 	poolProduce   = flag.Bool("pool", false, "if true, use a sync.Pool to reuse record structs/slices (producing)")
 	noIdempotency = flag.Bool("disable-idempotency", false, "if true, disable idempotency (force 1 produce rps)")
 	linger        = flag.Duration("linger", 0, "if non-zero, linger to use when producing")
-	batchMaxBytes = flag.Int("batch-max-bytes", 1000000, "the maximum batch size to allow per-partition (must be less than Kafka's max.message.bytes, producing)")
+	batchMaxBytes = flag.Int("batch-max-bytes", 1000000,
+		"the maximum batch size to allow per-partition (must be less than Kafka's max.message.bytes, producing)")
 
-	logLevel = flag.String("log-level", "", "if non-empty, use a basic logger with this log level (debug, info, warn, error)")
+	logLevel = flag.String("log-level", "",
+		"if non-empty, use a basic logger with this log level (debug, info, warn, error)")
 
 	consume = flag.Bool("consume", false, "if true, consume rather than produce")
-	group   = flag.String("group", "", "if non-empty, group to use for consuming rather than direct partition consuming (consuming)")
+	group   = flag.String("group", "",
+		"if non-empty, group to use for consuming rather than direct partition consuming (consuming)")
 
 	dialTLS  = flag.Bool("tls", false, "if true, use tls for connecting (if using well-known TLS certs)")
 	caFile   = flag.String("ca-cert", "", "if non-empty, path to CA cert to use for TLS (implies -tls)")
-	certFile = flag.String("client-cert", "", "if non-empty, path to client cert to use for TLS (requires -client-key, implies -tls)")
-	keyFile  = flag.String("client-key", "", "if non-empty, path to client key to use for TLS (requires -client-cert, implies -tls)")
+	certFile = flag.String("client-cert", "",
+		"if non-empty, path to client cert to use for TLS (requires -client-key, implies -tls)")
+	keyFile = flag.String("client-key", "",
+		"if non-empty, path to client key to use for TLS (requires -client-cert, implies -tls)")
 
-	saslMethod = flag.String("sasl-method", "", "if non-empty, sasl method to use (must specify all options; supports plain, scram-sha-256, scram-sha-512, aws_msk_iam)")
-	saslUser   = flag.String("sasl-user", "", "if non-empty, username to use for sasl (must specify all options)")
-	saslPass   = flag.String("sasl-pass", "", "if non-empty, password to use for sasl (must specify all options)")
+	saslMethod = flag.String("sasl-method", "",
+		"if non-empty, sasl method to use (must specify all options; supports plain, scram-sha-256, scram-sha-512, aws_msk_iam)")
+	saslUser = flag.String("sasl-user", "", "if non-empty, username to use for sasl (must specify all options)")
+	saslPass = flag.String("sasl-pass", "", "if non-empty, password to use for sasl (must specify all options)")
 
 	rateRecs  int64
 	rateBytes int64

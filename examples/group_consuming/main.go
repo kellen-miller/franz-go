@@ -8,15 +8,16 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/kellen-miller/franz-go/pkg/kgo"
 )
 
 var (
 	seedBrokers = flag.String("brokers", "localhost:9092", "comma delimited list of seed brokers")
 	topic       = flag.String("topic", "", "topic to consume from")
-	style       = flag.String("commit-style", "autocommit", "commit style (which consume & commit is chosen); autocommit|records|uncommitted")
-	group       = flag.String("group", "", "group to consume within")
-	logger      = flag.Bool("logger", false, "if true, enable an info level logger")
+	style       = flag.String("commit-style", "autocommit",
+		"commit style (which consume & commit is chosen); autocommit|records|uncommitted")
+	group  = flag.String("group", "", "group to consume within")
+	logger = flag.Bool("logger", false, "if true, enable an info level logger")
 )
 
 func die(msg string, args ...any) {
@@ -91,7 +92,8 @@ func consume(cl *kgo.Client, style int) {
 			fetches.EachRecord(func(*kgo.Record) {
 				seen++
 			})
-			fmt.Printf("processed %d records--autocommitting now allows the **prior** poll to be available for committing, nothing can be lost!\n", seen)
+			fmt.Printf("processed %d records--autocommitting now allows the **prior** poll to be available for committing, nothing can be lost!\n",
+				seen)
 
 		case 1:
 			var rs []*kgo.Record
@@ -102,7 +104,8 @@ func consume(cl *kgo.Client, style int) {
 				fmt.Printf("commit records failed: %v", err)
 				continue
 			}
-			fmt.Printf("committed %d records individually--this demo does this in a naive way by just hanging on to all records, but you could just hang on to the max offset record per topic/partition!\n", len(rs))
+			fmt.Printf("committed %d records individually--this demo does this in a naive way by just hanging on to all records, but you could just hang on to the max offset record per topic/partition!\n",
+				len(rs))
 
 		case 2:
 			var seen int
@@ -113,7 +116,8 @@ func consume(cl *kgo.Client, style int) {
 				fmt.Printf("commit records failed: %v", err)
 				continue
 			}
-			fmt.Printf("committed %d records successfully--the recommended pattern, as followed in this demo, is to commit all uncommitted offsets after each poll!\n", seen)
+			fmt.Printf("committed %d records successfully--the recommended pattern, as followed in this demo, is to commit all uncommitted offsets after each poll!\n",
+				seen)
 		}
 	}
 }
